@@ -1,51 +1,21 @@
-Inference_HB <- function(wd, env_data, species_data) {
+Inference_HB <- function(wd, training_data, offset_full) {
   
+  #parallelize computation
+  options(mc.cores = parallel::detectCores())
   
-  set_scale = 100
-  #create a grid for covariate data
-  grid_sparse <- meshgrid(seq(0, max(env_data$coordinates[,1]), set_scale),
-                          seq(0, max(env_data$coordinates[,2]), set_scale))
+  # prior for the variation of the linear weights
+  linear_sigma = 10
+  f_data <- list("y" = training_data$response, "x" = training_data$covariates,
+                 "N" = length(training_data$response), "linear_sigma" = linear_sigma,
+                 "weights" = log(training_data$weights) + log(offset_full[,1]) + log(offset_full[,2]))
   
-  env_coordinates_v2 <- cbind(array(grid_sparse$X), array(grid_sparse$Y))
+  inits <- list(.1, c(rep(.1,8)))
+  names(inits) <- c("alpha", "beta")
+  inits_chain1 <- list(inits)
   
-  #get covariate values for the cells
+  fit_hb_1 <- stan(file=paste(wd, 'R_code/PPP_covariate.stan', sep = '/'), data=f_data, iter=20000, warmup=15000,
+                   init = inits_chain1, chains=1, seed=2, refresh=10, algorithm="NUTS",
+                   control=list(adapt_delta=.99, max_treedepth = 15))
   
-  
-  #define covariate values for presence-observations
-  #locate them to the closest cell coordinates
-  ind_PO <- apply(species_data, 1, function(x) which.min((x[1]-env_data$coordinates[,1])^2 + 
-                                                           (x[2]-env_data$coordinates[,2])^2))
-  
-  #define presence locations and covariates
-  presence_coordinates <- env_data$coordinates[ind_PO,]
-  presence_covariates <- env_data$covariates[ind_PO,]
-  
-  #define quadrature points:
-  # fine scale point locations close to the observations
-  # coarse scale point locations far from the observations
-  
-  #extent of observations
-  obs_extent <- c(min(presence_coordinates[,1]), max(presence_coordinates[,1]),
-                  min(presence_coordinates[,2]), max(presence_coordinates[,2]))
-  
-  #fine scale point locations
-  env_ind_fine <- 0
-  for (i in 1:nrow(env_data$coordinates)){
-    env_ind_fine[i] <- env_data$coordinates[i,1] >= obs_extent[1] & env_data$coordinates[i,1] <= obs_extent[2] &
-    env_data$coordinates[i,2] >= obs_extent[3] & env_data$coordinates[i,2] <= obs_extent[4]
-  }
-  
-  radius <- 5
-  env_ind_fine <- 0
-  for (i in 1:nrow(env_data$coordinates)){
-    env_ind_fine[i] <- sum(sqrt((env_data$coordinates[i,1]-presence_coordinates[,1])^2 + 
-      (env_data$coordinates[i,2]-presence_coordinates[,2])^2)<=radius)
-  }
-  
-  #coarse scale point locations
-  
-
-  
-  
-  
+  return(fit_hb_1)
 }

@@ -3,52 +3,16 @@
 
 # Define species, inference method and offset
 
-
-doc <- 
-'
-Template
-
-Usage:
-script_template <out> [-t] [--seed=<seed>]
-script_template (-h | --help)
-
-Options:
--h --help     Show this screen.
--v --version     Show version.
--s --seed=<seed>  Random seed. Defaults to 5326 if not passed
--t --test         Indicates script is a test run, will not save output parameters or commit to git'
-
 if(interactive()) {
-  library(here)
-  
-  .wd <- 'Hummingbird_project'
-  .script <- 'R_code/SDM.r' #Currently executing script
-  .seed <- NULL
-  .test <- TRUE
-  rd <- here
-  
-  .outPF <- file.path(.wd,'Figures/myfig.png')
-  
+  .wd <- 'C:/Users/OMISTAJA/Documents/Hummingbird_project'
 } else {
-  library(docopt)
-  library(rprojroot)
-  
-  ag <- docopt(doc, version = '0.1\n')
-  
-  .wd <- getwd()
-  .script <-  thisfile()
-  .seed <- ag$seed
-  .test <- as.logical(ag$test)
-  rd <- is_rstudio_project$make_fix_file(.script)
-  
-  .outPF <- ag$out
+  .wd <- '/gpfs/loomis/pi/jetz/jm3669/Hummingbird_project'
 }
 
-
+.script <- 'SDM.r' #Currently executing script
 
 #---- Initialize Environment ----#
-.seed <- ifelse(is.null(.seed),5326,as.numeric(.seed))
-
+.seed <- 5326
 set.seed(.seed)
 t0 <- Sys.time()
 
@@ -65,12 +29,17 @@ suppressPackageStartupMessages({
 })
 #----  ----#
 
+##SDMs are fitted with each combination of offsets 
+
 # Set SDM parameters
-species = "Oreotrochilus_leucopleurus"
-offset = "none"
+species = c("Loddigesia_mirabilis", "Ocreatus_underwoodii", "Oreotrochilus_leucopleurus")
+thinning = FALSE
 observations = "PO"
 geographic_extent = "South-America"
+source(paste(.wd, "Rcode/RunInference_v1.R", sep = '/'))
 
-source()
-
-output <- RunInference(.wd, species, offset, observations, geographic_extent)
+for (i in length(species)) {
+  model_fits <- RunInference_v1(.wd, species[i], observations, geographic_extent)
+  save(model_fits, file = paste(.wd, '/', species[i], '_model_fits.RData', sep = ''))
+}
+t1 <- Sys.time()
