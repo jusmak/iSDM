@@ -1,5 +1,5 @@
 #Get prediction data
-Get_prediction_data <- function(wd, training_data, species) {
+Get_prediction_data <- function(wd, training_data, species, scale_out) {
   #load raster
   raster_cov_temp <- stack(paste(wd,"Data/Environment/Chelsa_Americas.tif", sep = '/'))
   
@@ -12,7 +12,7 @@ Get_prediction_data <- function(wd, training_data, species) {
   
   #rescale raster if on laptop
   if(interactive()) {
-    raster_cov_temp <- raster::aggregate(raster_cov_temp, fact = 20)
+    raster_cov_temp <- raster::aggregate(raster_cov_temp, fact = scale_out)
   }
   
   #name the raster layers
@@ -54,12 +54,12 @@ Get_prediction_data <- function(wd, training_data, species) {
   
   offset_expert <- training_expert_prior
   #assign probability for the cells inside of the range
-  offset_expert[!is.na(training_expert_prior)] <- p_in
+  offset_expert[!is.na(training_expert_prior)] <- (p_in)*sum(training_data$response)/sum(!is.na(training_expert_prior))
   #assign probability for the cells outside of the range
-  offset_expert[is.na(training_expert_prior)] <- 1-p_in
+  offset_expert[is.na(training_expert_prior)] <- (1-p_in)*sum(training_data$response)/sum(is.na(training_expert_prior))
   #upper / lower asymptote
-  u <- p_in
-  l <- 1-p_in
+  u <- (p_in)/sum(!is.na(training_expert_prior))
+  l <- (1-p_in)/sum(is.na(training_expert_prior))
   
   #smooth expert prior with a convolution kernel
   #compute distance to the range edge for the cells outside of the range
@@ -72,9 +72,13 @@ Get_prediction_data <- function(wd, training_data, species) {
   
   #compute a smoothed prior value
   smooth_prior <- u-(u-l)/(1+exp(-r*(dist_range-shift)))^(1/skew)
+
+  #normalize the prior values to equal the original sum of probabilities outside of the range
+  smooth_prior_sc <- smooth_prior/(sum(smooth_prior)/((1-p_in)*sum(training_data$response)))
   
   #combine with all other prior values
-  offset_expert[is.na(training_expert_prior)] <- smooth_prior
+  offset_expert[is.na(training_expert_prior)] <- smooth_prior_sc
+  
   
   ##ELEVATION##
   #read elevation offset
@@ -107,8 +111,8 @@ Get_prediction_data <- function(wd, training_data, species) {
   ind_above <- which(elev_temp[ind_out] > elev_range_sp[2])
   
   smooth_elev_prior <- rep(NA, nrow(dist_elev))
-  u <- 1
-  l <- .01
+  u <- 100
+  l <- 1
   #compute a smoothed prior value for points below
   smooth_elev_prior[ind_below] <- u-(u-l)/(1+exp(-r*(dist_elev[ind_below,1]-shift)))^(1/skew)
   
@@ -116,13 +120,16 @@ Get_prediction_data <- function(wd, training_data, species) {
   smooth_elev_prior[ind_above] <- u-(u-l)/(1+exp(-r*(dist_elev[ind_above,2]-shift)))^(1/skew)
 
   #combine elevation priors
-  offset_elevation <- rep(1, length(elev_temp))
+  offset_elevation <- rep(100, length(elev_temp))
   offset_elevation[ind_out] <- smooth_elev_prior
   
+  #make it sum to the number of presence observations
+  offset_elevation <- offset_elevation*sum(training_data$response)/sum(offset_elevation)
+  
   #bind all different offset scenarios
-  offset_pred <- list(matrix(rep(1,length(offset_expert)*2),nrow = length(offset_expert)),
-                      matrix(c(offset_expert, rep(1,length(offset_expert))),nrow = length(offset_expert)),
-                      matrix(c(rep(1,length(offset_expert)), offset_elevation),nrow = length(offset_expert)),
+  offset_full <- list(matrix(rep(sum(training_data$response)/length(offset_expert),length(offset_expert)*2),nrow = length(offset_expert)),
+                      matrix(c(offset_expert, rep(sum(training_data$response)/length(offset_expert),length(offset_expert))),nrow = length(offset_expert)),
+                      matrix(c(rep(sum(training_data$response)/length(offset_expert),length(offset_expert)), offset_elevation),nrow = length(offset_expert)),
                       matrix(c(offset_expert, offset_elevation),nrow = length(offset_expert)))
   
   pred_data <- list(cov_pred, coord_pred, offset_pred)

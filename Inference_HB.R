@@ -7,7 +7,7 @@ Inference_HB <- function(wd, training_data, offset_full) {
   linear_sigma = 10
   f_data <- list("y" = training_data$response, "x" = training_data$covariates,
                  "N" = length(training_data$response), "linear_sigma" = linear_sigma,
-                 "weights" = log(training_data$weights) + log(offset_full[,1]) + log(offset_full[,2]))
+                 "weights" = training_data$weights, offset = log(offset_full[,1]) - mean(log(offset_full[,1])) + log(offset_full[,2]) - mean(log(offset_full[,2])))
   
   inits <- list(.1, c(rep(.1,8)))
   names(inits) <- c("alpha", "beta")

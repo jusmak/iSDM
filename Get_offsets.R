@@ -19,9 +19,9 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   
   offset_expert <- training_expert_prior
   #assign probability for the cells inside of the range
-  offset_expert[!is.na(training_expert_prior)] <- (p_in)/sum(!is.na(training_expert_prior))
+  offset_expert[!is.na(training_expert_prior)] <- (p_in)*sum(training_data$response)/sum(!is.na(training_expert_prior))
   #assign probability for the cells outside of the range
-  offset_expert[is.na(training_expert_prior)] <- (1-p_in)/sum(is.na(training_expert_prior))
+  offset_expert[is.na(training_expert_prior)] <- (1-p_in)*sum(training_data$response)/sum(is.na(training_expert_prior))
   #upper / lower asymptote
   u <- (p_in)/sum(!is.na(training_expert_prior))
   l <- (1-p_in)/sum(is.na(training_expert_prior))
@@ -39,7 +39,7 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   smooth_prior <- u-(u-l)/(1+exp(-r*(dist_range-shift)))^(1/skew)
   
   #normalize the prior values to equal the original sum of probabilities outside of the range
-  smooth_prior_sc <- smooth_prior/(sum(smooth_prior)/(1-p_in))
+  smooth_prior_sc <- smooth_prior/(sum(smooth_prior)/((1-p_in)*sum(training_data$response)))
   
   #combine with all other prior values
   offset_expert[is.na(training_expert_prior)] <- smooth_prior_sc
@@ -87,13 +87,13 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   offset_elevation <- rep(100, length(elev_temp))
   offset_elevation[ind_out] <- smooth_elev_prior
   
-  #make it sum to one
-  offset_elevation <- offset_elevation/sum(offset_elevation)
+  #make it sum to the number of presence observations
+  offset_elevation <- offset_elevation*sum(training_data$response)/sum(offset_elevation)
   
   #bind all different offset scenarios
-  offset_full <- list(matrix(rep(1,length(offset_expert)*2),nrow = length(offset_expert)),
-                      matrix(c(offset_expert, rep(1,length(offset_expert))),nrow = length(offset_expert)),
-                      matrix(c(rep(1,length(offset_expert)), offset_elevation),nrow = length(offset_expert)),
+  offset_full <- list(matrix(rep(sum(training_data$response)/length(offset_expert),length(offset_expert)*2),nrow = length(offset_expert)),
+                      matrix(c(offset_expert, rep(sum(training_data$response)/length(offset_expert),length(offset_expert))),nrow = length(offset_expert)),
+                      matrix(c(rep(sum(training_data$response)/length(offset_expert),length(offset_expert)), offset_elevation),nrow = length(offset_expert)),
                       matrix(c(offset_expert, offset_elevation),nrow = length(offset_expert)))
                       
   return(offset_full)

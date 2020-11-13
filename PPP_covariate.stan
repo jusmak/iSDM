@@ -3,6 +3,7 @@ data {
   matrix[N,4] x;
   int<lower=0> y[N];
   vector[N] weights;
+  vector[N] offset;
   int<lower=1> linear_sigma;
 }
 
@@ -28,7 +29,7 @@ model {
   
   // observation model
   for(i in 1:N){
-    target += poisson_log_lpmf(y[i] | alpha + x_full[i,]*beta) + weights[i];
+    target += poisson_log_lpmf(y[i] | offset[i] + alpha + x_full[i,]*beta) * weights[i];
   }
 }
 
@@ -36,6 +37,6 @@ model {
 //generated quantities {
 //  vector[N] log_lik;
 //  for (i in 1:N){
-//    log_lik[i] = poisson_log_lpmf(y[i] | alpha + x[i,]*beta) * weights[i];
+//    log_lik[i] = poisson_lpmf(y[i] | alpha + x[i,]*beta) * weights[i];
 //  }
 //}

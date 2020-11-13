@@ -15,11 +15,25 @@ if(interactive()) {
 .seed <- 5326
 set.seed(.seed)
 
+suppressPackageStartupMessages({
+  library(raster)
+  library(glmnet)
+  library(pracma)
+  library(ppmlasso)
+  library(rstan)
+  library(bayesplot)
+  library(rstanarm)
+  library(ggplot2)
+  library(dismo)
+  library(dplyr)
+})
+
 #Set SDM parameters
 species = c("Loddigesia_mirabilis", "Ocreatus_underwoodii", "Oreotrochilus_leucopleurus")
-thinning = FALSE
 observations = "PO"
 geographic_extent = "South-America"
+thinning = FALSE
+scale_out = 20
 
 #Loop over all species
 for (i in 1:length(species)) {
@@ -30,7 +44,11 @@ for (i in 1:length(species)) {
   #Create predictions over the geographic extent
   #Get environmental prediction data
   source(paste(.wd, "R_code/Get_prediction_data.R", sep = '/'))
-  pred_data <- Get_prediction_data(.wd, model_fits$training_data, species[i])
+  pred_data <- Get_prediction_data(.wd, model_fits$training_data, species[i], scale_out)
+  
+  #Get validation data
+  source(paste(.wd, "R_code/Get_validation_data.R", sep = '/'))
+  pred_PA_data <- Get_validation_data(.wd, model_fits$training_data, species[i])
   
   #Compute predictive accuracy of the models
   #loo_cv,Tjur R for test and training data

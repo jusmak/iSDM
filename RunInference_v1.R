@@ -1,4 +1,4 @@
-RunInference_v1 <- function(wd, species, observations, geographic_extent,thinning) {
+RunInference_v1 <- function(wd, species, observations, geographic_extent,thinning, scale_out) {
   
   # get environmental data set
   source(paste(wd, "R_code/Get_env_data.R", sep = '/'))
@@ -10,7 +10,7 @@ RunInference_v1 <- function(wd, species, observations, geographic_extent,thinnin
   
   #sort data for inference
   source(paste(wd, "R_code/PP_training_data.R", sep = '/'))
-  training_data <- PP_training_data(wd, env_data, species_data)
+  training_data <- PP_training_data(wd, env_data, species_data, scale_out)
   
   #define offsets (expert range map + elevation)
   source(paste(wd, "R_code/Get_offsets.R", sep = '/'))

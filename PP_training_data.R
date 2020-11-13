@@ -1,4 +1,4 @@
-PP_training_data <- function(wd, env_data, species_data) {
+PP_training_data <- function(wd, env_data, species_data, scale_out) {
   
   
   #define covariate values for presence-observations
@@ -31,11 +31,9 @@ PP_training_data <- function(wd, env_data, species_data) {
   raster_cov_temp <- stack(paste(wd,"Data/Environment/Chelsa_Americas.tif", sep = '/'))
   raster_res <- res(raster_cov_temp)/1000
   
-  #set the factor by which the spatial grid is coarsened
-  set_scale = 25
   #create a grid for covariate data
-  grid_sparse <- meshgrid(seq(raster_res[1]*set_scale/2, max(env_data$coordinates[,1]), raster_res[1]*set_scale),
-                          seq(raster_res[2]*set_scale/2, max(env_data$coordinates[,2]), raster_res[2]*set_scale))
+  grid_sparse <- meshgrid(seq(raster_res[1]*scale_out/2, max(env_data$coordinates[,1]), raster_res[1]*scale_out),
+                          seq(raster_res[2]*scale_out/2, max(env_data$coordinates[,2]), raster_res[2]*scale_out))
   
   #make the matrix into a table format
   env_coordinates_coarse <- cbind(array(grid_sparse$X), array(grid_sparse$Y))
@@ -55,7 +53,7 @@ PP_training_data <- function(wd, env_data, species_data) {
   quad_coarse_covariates <- coarse_scale_covariates[ind_NA==FALSE,]
   
   #remove the cells which are too close to the fine scale quadrature points
-  radius <- max(raster_res)*set_scale/2
+  radius <- max(raster_res)*scale_out/2
   ind_remove <- rep(NA, nrow(quad_coarse_coordinates))
   for (i in 1:nrow(quad_coarse_coordinates)) {
     ind_remove[i] <- sum(sqrt((quad_coarse_coordinates[i,1] - quad_fine_coordinates[,1])^2 +
@@ -91,6 +89,9 @@ PP_training_data <- function(wd, env_data, species_data) {
   
   #weights in those quadrature points are 1/2
   weights[ind_pres+nrow(presence_coordinates)] <- 1/2
+  
+  #weights for sparse quadrature points are scale_out^2
+  weights[nrow(presence_coordinates) + nrow(quad_fine_coordinates) + 1:length(weights)] <- scale_out^2
   
   #define training data as a list
   training_data <- list(train_coordinates,train_covariates_st,cov_mean,cov_sd,env_data$min_coordinates,response,weights)
