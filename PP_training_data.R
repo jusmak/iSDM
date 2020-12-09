@@ -1,6 +1,5 @@
 PP_training_data <- function(wd, env_data, species_data, scale_out) {
   
-  
   #define covariate values for presence-observations
   #locate them to the closest cell coordinates
   ind_PO <- apply(species_data, 1, function(x) which.min((x[1]-env_data$coordinates[,1])^2 + 
@@ -28,7 +27,7 @@ PP_training_data <- function(wd, env_data, species_data, scale_out) {
   
   #coarse scale point locations
   #load raster to get its resolution
-  raster_cov_temp <- stack(paste(wd,"Data/Environment/Chelsa_Americas.tif", sep = '/'))
+  raster_cov_temp <- stack(paste(wd,"Data/Environment/Chelsa_SA.tif", sep = '/'))
   raster_res <- res(raster_cov_temp)/1000
   
   #create a grid for covariate data
@@ -57,7 +56,7 @@ PP_training_data <- function(wd, env_data, species_data, scale_out) {
   ind_remove <- rep(NA, nrow(quad_coarse_coordinates))
   for (i in 1:nrow(quad_coarse_coordinates)) {
     ind_remove[i] <- sum(sqrt((quad_coarse_coordinates[i,1] - quad_fine_coordinates[,1])^2 +
-      (quad_coarse_coordinates[i,2] - quad_fine_coordinates[,2])^2)<radius)>0
+                                (quad_coarse_coordinates[i,2] - quad_fine_coordinates[,2])^2)<radius)>0
     
   }
   
@@ -91,7 +90,7 @@ PP_training_data <- function(wd, env_data, species_data, scale_out) {
   weights[ind_pres+nrow(presence_coordinates)] <- 1/2
   
   #weights for sparse quadrature points are scale_out^2
-  weights[nrow(presence_coordinates) + nrow(quad_fine_coordinates) + 1:length(weights)] <- scale_out^2
+  weights[(nrow(presence_coordinates) + nrow(quad_fine_coordinates) + 1):length(weights)] <- scale_out^2
   
   #define training data as a list
   training_data <- list(train_coordinates,train_covariates_st,cov_mean,cov_sd,env_data$min_coordinates,response,weights)

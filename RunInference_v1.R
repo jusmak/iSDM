@@ -1,12 +1,16 @@
-RunInference_v1 <- function(wd, species, observations, geographic_extent,thinning, scale_out) {
+RunInference_v1 <- function(wd, species, observations, geographic_extent,thinning, target_n_obs) {
   
   # get environmental data set
   source(paste(wd, "R_code/Get_env_data.R", sep = '/'))
-  env_data <- Get_env_data(wd, geographic_extent)
+  env_data <- Get_env_data(wd, geographic_extent, species)
   
   # get species observations
   source(paste(wd, "R_code/Get_species_data.R", sep = '/'))
   species_data <- Get_species_data(wd,species,env_data$min_coordinates,thinning)
+  
+  #set scale out according to the target_n_obs
+  domain_temp <- stack(paste(wd,"/Data/Domains/", species, ".tif", sep = ''))
+  scale_out <- round(sqrt(sum(!is.na(values(domain_temp[[1]])))/50000))
   
   #sort data for inference
   source(paste(wd, "R_code/PP_training_data.R", sep = '/'))
@@ -20,8 +24,8 @@ RunInference_v1 <- function(wd, species, observations, geographic_extent,thinnin
   source(paste(wd, "R_code/Inference_HB.R", sep = '/'))
   fit_hb_all <- list()
   for (i in 1:4) {
-    fit_hb <- Inference_HB(wd, training_data, offset_full[[i]])
-    fit_hb_all[[i]] <- fit_hb
+    #fit_hb <- Inference_HB(wd, training_data, offset_full[[i]])
+    #fit_hb_all[[i]] <- fit_hb
   }
   
   #conduct frequentist regularized regression

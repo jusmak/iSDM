@@ -8,7 +8,7 @@ Get_species_data <- function(wd, species, min_coordinates, thinning) {
   
   #define input data for thinning
   occ_folder <- paste(wd, "/Data/PO_observations/", species, ".csv", sep = '')
-  env_raster <- raster_cov_temp <- stack(paste(wd,"Data/Environment/Chelsa_Americas.tif", sep = '/'))
+  env_raster <- raster_cov_temp <- stack(paste(wd,"Data/Environment/Chelsa_SA.tif", sep = '/'))
   sp_occ_thin <- cleanOcc(speciesCSV = occ_folder, env = env_raster, doThin = thinning)
   
   #derive points

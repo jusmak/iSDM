@@ -33,10 +33,9 @@ model {
   }
 }
 
-
 //generated quantities {
 //  vector[N] log_lik;
 //  for (i in 1:N){
-//    log_lik[i] = poisson_lpmf(y[i] | alpha + x[i,]*beta) * weights[i];
+//    log_lik[i] = poisson_lpmf(y[i] | offset[i] + alpha + x[i,]*beta) * weights[i];
 //  }
 //}

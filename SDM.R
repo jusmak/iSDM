@@ -38,17 +38,27 @@ suppressPackageStartupMessages({
 ##SDMs are fitted with each combination of offsets 
 
 # Set SDM parameters
-species = c("Loddigesia_mirabilis", "Ocreatus_underwoodii", "Oreotrochilus_leucopleurus")
+species_list = c("Loddigesia_mirabilis", "Ocreatus_underwoodii", "Oreotrochilus_leucopleurus")
 observations = "PO"
 geographic_extent = "South-America"
 thinning = FALSE
-scale_out = 20   #set the factor by which the spatial grid is coarsened
-source(paste(.wd, "R_code/RunInference_v1.R", sep = '/'))
+targe_n_obs = 50000  #set the factor by which the spatial grid is coarsened
 
-for (i in length(species)) {
-  model_fits <- RunInference_v1(.wd, species[i], observations, geographic_extent, thinning, scale_out)
-  save(model_fits, file = paste(.wd, '/', species[i], '_model_fits.RData', sep = ''))
+#for running glmnet function
+source(paste(.wd, "R_code/RunInference_v1.R", sep = '/'))
+for (i in 1:length(species_list)) {
+  .species <- species_list[i]
+  model_fits <- RunInference_v1(.wd, .species, observations, geographic_extent, thinning, targe_n_obs)
+  save(model_fits, file = paste(.wd, '/', .species, '_model_fits.RData', sep = ''))
 }
+
+#for running glm function
+#source(paste(.wd, "R_code/RunInference_v2.R", sep = '/'))
+#for (i in 1:length(species)) {
+#  model_fits <- RunInference_v2(.wd, species[i], observations, geographic_extent, thinning, scale_out)
+#  save(model_fits, file = paste(.wd, '/', species[i], '_model_fits_v2.RData', sep = ''))
+#}
+
 t1 <- Sys.time()
 
 
