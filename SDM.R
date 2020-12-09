@@ -1,26 +1,13 @@
 ## SDM ##
 # Jussi Makinen 2020
 
-# Define species, inference method and offset
-
-if(interactive()) {
-  .wd <- 'C:/Users/OMISTAJA/Documents/Hummingbird_project'
-} else {
-  .wd <- '/gpfs/loomis/pi/jetz/jm3669/Hummingbird_project'
-}
-
-.script <- 'SDM.r' #Currently executing script
-
-#---- Initialize Environment ----#
-.seed <- 5326
-set.seed(.seed)
-t0 <- Sys.time()
+#---- Load packages ----#
 if(interactive()) {
   lib_path <- .libPaths()[1]
 } else {
   lib_path <- "/gpfs/loomis/pi/jetz/jm3669/R/3.6/"
 }
-  
+
 suppressPackageStartupMessages({
   library(raster, lib.loc=lib_path)
   library(glmnet, lib.loc=lib_path)
@@ -33,32 +20,44 @@ suppressPackageStartupMessages({
   library(dismo, lib.loc=lib_path)
 })
 
-#----  ----#
+#---- Set working directory ----#
+if(interactive()) {
+  .wd <- 'C:/Users/OMISTAJA/Documents/Hummingbird_project'
+} else {
+  .wd <- '/gpfs/loomis/pi/jetz/jm3669/Hummingbird_project'
+}
 
-##SDMs are fitted with each combination of offsets 
+#---- Initialize Environment ----#
+.seed <- 5326
+set.seed(.seed)
 
-# Set SDM parameters
+#---- Set parameters for model runs ----#
+
+#species
 species_list = c("Loddigesia_mirabilis", "Ocreatus_underwoodii", "Oreotrochilus_leucopleurus")
-observations = "PO"
-geographic_extent = "South-America"
-thinning = FALSE
-targe_n_obs = 50000  #set the factor by which the spatial grid is coarsened
 
-#for running glmnet function
+#SDMs are fitted with each combination of offsets
+#"none", "expert range map", "elevation" and "expert range map + elevation"
+
+#option for spatially thin occurrence records
+thinning = FALSE
+
+#set the number of quadrature points in the coarse scale grid
+targe_n_obs = 50000
+
+#inference types
+HB_inf = FALSE
+glmnet_inf = FALSE
+ppml_inf = TRUE
+
+# RunInference_v1 takes in environmental and species data, runs the inference and saves the model output
 source(paste(.wd, "R_code/RunInference_v1.R", sep = '/'))
 for (i in 1:length(species_list)) {
   .species <- species_list[i]
-  model_fits <- RunInference_v1(.wd, .species, observations, geographic_extent, thinning, targe_n_obs)
-  save(model_fits, file = paste(.wd, '/', .species, '_model_fits.RData', sep = ''))
+  model_fits <- RunInference_v1(.wd, .species, thinning, targe_n_obs, HB_inf, glmnet_inf, ppml_inf)
+  save(model_fits, file = paste(.wd, '/Model_fits/', .species, '_model_fits.RData', sep = ''))
 }
 
-#for running glm function
-#source(paste(.wd, "R_code/RunInference_v2.R", sep = '/'))
-#for (i in 1:length(species)) {
-#  model_fits <- RunInference_v2(.wd, species[i], observations, geographic_extent, thinning, scale_out)
-#  save(model_fits, file = paste(.wd, '/', species[i], '_model_fits_v2.RData', sep = ''))
-#}
 
-t1 <- Sys.time()
 
 

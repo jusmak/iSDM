@@ -5,7 +5,9 @@ Inference_HB <- function(wd, training_data, offset_full) {
   
   # prior for the variation of the linear weights
   linear_sigma = 10
-  f_data <- list("y" = training_data$response/training_data$weights, "x" = training_data$covariates,
+  #take 
+  x_temp <- cbind(training_data$covariates,training_data$covariates^2)
+  f_data <- list("y" = training_data$response/training_data$weights, "x" = x_temp,
                  "N" = length(training_data$response), "linear_sigma" = linear_sigma,
                  "weights" = training_data$weights, offset = log(offset_full[,1]) + log(offset_full[,2]))
   

@@ -1,15 +1,10 @@
 data {
   int<lower=1> N;
-  matrix[N,4] x;
+  matrix[N,8] x;
   int<lower=0> y[N];
   vector[N] weights;
   vector[N] offset;
   int<lower=1> linear_sigma;
-}
-
-transformed data {
-  matrix[N,4] x_squared = x .* x;
-  matrix[N,8] x_full = append_col(x,x_squared);
 }
 
 parameters {
@@ -29,7 +24,7 @@ model {
   
   // observation model
   for(i in 1:N){
-    target += poisson_log_lpmf(y[i] | offset[i] + alpha + x_full[i,]*beta) * weights[i];
+    target += poisson_log_lpmf(y[i] | offset[i] + alpha + x[i,]*beta) * weights[i];
   }
 }
 

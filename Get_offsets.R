@@ -19,12 +19,12 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   shift <- offset_parameters[offset_parameters$Species==species,5]
   
   offset_expert <- training_expert_prior
-  #assign intensity for the cells inside of the range
-  offset_expert[!is.na(training_expert_prior)] <- (p_in)*sum(training_data$response)/sum(training_data$weights[!is.na(training_expert_prior)])
-  #assign intensity for the cells outside of the range
+  #assign intensity for the cells located inside the range
+  offset_expert[!is.na(training_expert_prior)] <- p_in*sum(training_data$response)/sum(training_data$weights[!is.na(training_expert_prior)])
+  #assign intensity for the cells located outside the range
   offset_expert[is.na(training_expert_prior)] <- (1-p_in)*sum(training_data$response)/sum(training_data$weights[is.na(training_expert_prior)])
   #upper / lower asymptote of the intensity
-  u <- (p_in)*sum(training_data$response)/sum(training_data$weights[!is.na(training_expert_prior)])
+  u <- p_in*sum(training_data$response)/sum(training_data$weights[!is.na(training_expert_prior)])
   l <- (1-p_in)*sum(training_data$response)/sum(training_data$weights[is.na(training_expert_prior)])
   
   #smooth expert prior with a convolution kernel
@@ -72,7 +72,6 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   dist_elev <- matrix(rep(NA, length(ind_out)*2), nrow = length(ind_out))
   for (i in 1:length(ind_out)) {
     dist_elev[i,] <- sqrt((c(elev_temp[ind_out[i]]-elev_range_sp[1], elev_temp[ind_out[i]]-elev_range_sp[2]))^2)
-    #dist_elev[i,] <- c(elev_temp[ind_out[i]]-elev_range_sp[1], elev_temp[ind_out[i]]-elev_range_sp[2])
   }
   
   #the parameter values are drawn from Diego's ms

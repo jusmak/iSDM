@@ -34,7 +34,7 @@ PP_training_data <- function(wd, env_data, species_data, scale_out) {
   grid_sparse <- meshgrid(seq(raster_res[1]*scale_out/2, max(env_data$coordinates[,1]), raster_res[1]*scale_out),
                           seq(raster_res[2]*scale_out/2, max(env_data$coordinates[,2]), raster_res[2]*scale_out))
   
-  #make the matrix into a table format
+  #transform the grid into two vectors of coordinates
   env_coordinates_coarse <- cbind(array(grid_sparse$X), array(grid_sparse$Y))
   
   #transform the coordinates to original scale
@@ -52,7 +52,7 @@ PP_training_data <- function(wd, env_data, species_data, scale_out) {
   quad_coarse_covariates <- coarse_scale_covariates[ind_NA==FALSE,]
   
   #remove the cells which are too close to the fine scale quadrature points
-  radius <- max(raster_res)*scale_out/2
+  radius <- max(raster_res)*(scale_out/2+.5)
   ind_remove <- rep(NA, nrow(quad_coarse_coordinates))
   for (i in 1:nrow(quad_coarse_coordinates)) {
     ind_remove[i] <- sum(sqrt((quad_coarse_coordinates[i,1] - quad_fine_coordinates[,1])^2 +
@@ -77,20 +77,25 @@ PP_training_data <- function(wd, env_data, species_data, scale_out) {
                rep(0,nrow(quad_coarse_coordinates)))
   
   #assign weights to the quadarature weights and the presence observations
-  weights <- rep(1,nrow(train_covariates))
+  #weights in the presence locations is .5 since there is as well a quadrature point
+  #in each presence location
+  weights_presence <- rep(.5,nrow(presence_coordinates))
   
-  #weights in the presence locations are 1/2
-  weights[response==1] <- 1/2
+  #weights of the fine scale quadrature points
+  weights_fine_quad <- rep(1, nrow(quad_fine_coordinates))
   
   #find quadrature points that are in the same locations
   ind_pres <- apply(presence_coordinates, 1, function(x) 
-    which(quad_fine_coordinates[,1]==x[1] & quad_fine_coordinates[,2]==x[2]))
+    which(x[1] == quad_fine_coordinates[,1] & x[2] == quad_fine_coordinates[,2]))
   
-  #weights in those quadrature points are 1/2
-  weights[ind_pres+nrow(presence_coordinates)] <- 1/2
+  #weights in those quadrature points are .5
+  weights_fine_quad[ind_pres] <- .5
   
   #weights for sparse quadrature points are scale_out^2
-  weights[(nrow(presence_coordinates) + nrow(quad_fine_coordinates) + 1):length(weights)] <- scale_out^2
+  weights_coarse_quad <- rep(scale_out^2, nrow(quad_coarse_coordinates))
+  
+  #combine all weights into one vector
+  weights <- c(weights_presence, weights_fine_quad, weights_coarse_quad)
   
   #define training data as a list
   training_data <- list(train_coordinates,train_covariates_st,cov_mean,cov_sd,env_data$min_coordinates,response,weights)

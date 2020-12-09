@@ -1,31 +1,24 @@
-Get_env_data <- function(wd, geographic_extent, species){
+Get_env_data <- function(wd, species){
   
-  #load raster
+  #load environmental covariates as stacked rasters
   raster_cov_temp <- stack(paste(wd,"Data/Environment/Chelsa_SA.tif", sep = '/'))
 
   #load geographic extent
   domain_temp <- stack(paste(wd,"/Data/Domains/", species, ".tif", sep = ''))
   
+  #crop covariates with the geographic extent
   raster_cov_temp <- crop(raster_cov_temp, domain_temp)
+  
+  #finalize cropping by setting all values outside of the extent to NA
   values(raster_cov_temp)[is.na(values(domain_temp)[,2]),] <- NA
   
-  #load geographic extent
-  #extent <- read.csv(paste(wd,"Data/Environment/Extent_geographic_area.csv", sep = '/'), sep = ';', header = TRUE)
-  #extent_temp <- as.double(unlist(extent[extent[,1]==geographic_extent,2:5]))
-  
-  #crop geographic area
-  #raster_cov_temp <- crop(raster_cov_temp, extent_temp)
-  
-  #name the raster layers
-  names(raster_cov_temp) <- c("cov1", "cov2", "cov3", "cov4")
-  
   #create an empty matrix for storing values of the raster layers
-  cov_matrix <- matrix(NA, nrow = sum(!is.na(values(raster_cov_temp[[2]]))),
+  cov_matrix <- matrix(NA, nrow = length(values(raster_cov_temp[[1]])),
                        ncol = length(names(raster_cov_temp)))
   
   #store values
   for (i in 1:ncol(cov_matrix)) {
-    cov_matrix[,i] <- values(raster_cov_temp[[i]])[!is.na(values(raster_cov_temp[[2]]))]
+    cov_matrix[,i] <- values(raster_cov_temp[[i]])
   }
   
   #find rows where any covariate has NA and remove the row
@@ -33,8 +26,7 @@ Get_env_data <- function(wd, geographic_extent, species){
   cov_matrix <- cov_matrix[rows_na==FALSE,]
   
   #get coordinates of the cells
-  xy_matrix <- coordinates(raster_cov_temp)[!is.na(values(raster_cov_temp[[2]])),]
-  xy_matrix <- xy_matrix[rows_na==FALSE,]
+  xy_matrix <- coordinates(raster_cov_temp)[rows_na==FALSE,]
   
   #put coordinates start from zero
   min_coord <- apply(xy_matrix,2,min)

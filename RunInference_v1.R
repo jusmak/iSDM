@@ -1,8 +1,8 @@
-RunInference_v1 <- function(wd, species, observations, geographic_extent,thinning, target_n_obs) {
+RunInference_v1 <- function(wd, species, thinning, target_n_obs, inference_type, HB_inf, glmnet_inf, ppml_inf) {
   
   # get environmental data set
   source(paste(wd, "R_code/Get_env_data.R", sep = '/'))
-  env_data <- Get_env_data(wd, geographic_extent, species)
+  env_data <- Get_env_data(wd, species)
   
   # get species observations
   source(paste(wd, "R_code/Get_species_data.R", sep = '/'))
@@ -21,22 +21,36 @@ RunInference_v1 <- function(wd, species, observations, geographic_extent,thinnin
   offset_full <- Get_offsets(wd, training_data, env_data, species)
 
   #conduct Hierarchical Bayesian inference for each different offset scenario
-  source(paste(wd, "R_code/Inference_HB.R", sep = '/'))
   fit_hb_all <- list()
-  for (i in 1:4) {
-    #fit_hb <- Inference_HB(wd, training_data, offset_full[[i]])
-    #fit_hb_all[[i]] <- fit_hb
+  if (HB_inf) {
+    source(paste(wd, "R_code/Inference_HB.R", sep = '/'))
+    for (i in 1:4) {
+      fit_hb <- Inference_HB(wd, training_data, offset_full[[i]])
+      fit_hb_all[[i]] <- fit_hb
+    }
   }
   
-  #conduct frequentist regularized regression
-  source(paste(wd, "R_code/Inference_glmnet.R", sep = '/'))
+  #conduct frequentist regularized regression for each different offset scenario
   fit_glmnet_all <- list()
-  for (i in 1:4) {
-    fit_glmnet <- Inference_glmnet(wd, training_data, offset_full[[i]])
-    fit_glmnet_all[[i]] <- fit_glmnet
+  if (glmnet_inf) {
+    source(paste(wd, "R_code/Inference_glmnet.R", sep = '/'))
+    for (i in 1:4) {
+      fit_glmnet <- Inference_glmnet(wd, training_data, offset_full[[i]])
+      fit_glmnet_all[[i]] <- fit_glmnet
+    }
   }
   
-  model_fits <- list(fit_hb_all,fit_glmnet_all,training_data,offset_full)
-  names(model_fits) <- c('HB_model', 'glmnet_model', 'training_data', 'offset')
+  #conduct frequentist regularized regression with ppmlasso for each different offset scenario
+  fit_ppml_all <- list()
+  if (ppml_inf) {
+    source(paste(wd, "R_code/Inference_ppml.R", sep = '/'))
+    for (i in 1:4) {
+      fit_ppml <- Inference_ppml(wd, training_data, offset_full[[i]])
+      fit_ppml_all[[i]] <- fit_ppml
+    }
+  }
+  
+  model_fits <- list(fit_hb_all,fit_glmnet_all,fit_ppml_all,training_data,offset_full)
+  names(model_fits) <- c('HB_model', 'glmnet_model', 'ppml_model', 'training_data', 'offset')
   return(model_fits)
 }
