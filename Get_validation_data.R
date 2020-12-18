@@ -11,6 +11,11 @@ Get_validation_data <- function(wd, training_data, offset, species) {
   coord_survey_sites <- spTransform(coord_survey_sites, proj_temp)
   coord_survey_sites <- as.data.frame(coord_survey_sites)
   
+  #Take only the survey sites which are inside of the domain
+  domain_temp <- stack(paste(wd,"/Data/Domains/", species, ".tif", sep = ''))
+  ind_site <- raster::extract(domain_temp[[2]], coord_survey_sites)
+  coord_survey_sites <- coord_survey_sites[!is.na(ind_site),]
+  
   #Get covariate values in the survey sites
   cov_pred <- as.data.frame(raster::extract(raster_cov_temp,coord_survey_sites))
   
@@ -21,11 +26,11 @@ Get_validation_data <- function(wd, training_data, offset, species) {
   survey_species <- read.csv(paste(wd, '/Data/PA_observations/Juan_parra_checklists/SpeciesxSite8Feb2011.csv', sep = ''))
   survey_species <- survey_species[,c(1:2,5)]
   #Join species with the survey locations
-  survey_jp <- left_join(survey_sites, survey_species)
+  survey_jp <- left_join(survey_sites[!is.na(ind_site),], survey_species)
   
   #Define locations where species is present
   presence_loc <- data.frame(survey_jp[survey_jp$Spname=='Ocreatus_underwoodii',2])
-  ind_pres <- apply(presence_loc,1, function(x) which(survey_sites[,2] == x))
+  ind_pres <- apply(presence_loc,1, function(x) which(survey_sites[!is.na(ind_site),2] == x))
   
   #define a response variable
   resp <- rep(0, nrow(cov_pred))
@@ -40,15 +45,14 @@ Get_validation_data <- function(wd, training_data, offset, species) {
   #find the closest training point for each validation point
   ind_tr <- rep(NA,length(resp))
   for (i in 1:length(ind_tr)) {
-    ind_tr[i] <- which.min(apply((coord_pred[i,]-training_data$coordinates)^2,1,sum))
+    ind_tr[i] <- which.min((coord_pred[i,1]-training_data$coordinates[,1])^2 + 
+                             (coord_pred[i,2]-training_data$coordinates[,2])^2)
   }
   
   #define offsets for each validation point
   offset_pred <- list()
   for (i in 1:length(offset)) {
-    offset_temp <- offset[[i]]
-    offset_temp <- log(offset_temp[,1])-mean(log(offset_temp[,1])) + log(offset_temp[,2])-mean(log(offset_temp[,2]))
-    offset_pred[[i]] <- offset_temp[ind_tr]
+    offset_pred[[i]] <- offset[[i]][ind_tr,]
   }
   
   independent_validation <- list(coord_pred, cov_pred, resp, offset_pred)

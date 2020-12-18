@@ -3,17 +3,7 @@
 
 #Define species, inference method and offset
 
-if(interactive()) {
-  .wd <- 'C:/Users/OMISTAJA/Documents/Hummingbird_project'
-} else {
-  .wd <- '/gpfs/loomis/pi/jetz/jm3669/Hummingbird_project'
-}
-
-.script <- 'SDM.r' #Currently executing script
-
-#---- Initialize Environment ----#
-.seed <- 5326
-set.seed(.seed)
+#---- Load packages ----#
 if(interactive()) {
   lib_path <- .libPaths()[1]
 } else {
@@ -35,16 +25,40 @@ suppressPackageStartupMessages({
   library(caret, lib.loc=lib_path)
   library(pROC, lib.loc=lib_path)
   library(flexclust, lib.loc=lib_path)
-  library(RColorBrewer, lib.loc=lib_path)
 })
 
-#Set SDM parameters
-species_list = c("Loddigesia_mirabilis", "Ocreatus_underwoodii", "Oreotrochilus_leucopleurus") #
-observations = "PO"
-geographic_extent = "South-America"
+#---- Set working directory ----#
+if(interactive()) {
+  .wd <- 'C:/Users/OMISTAJA/Documents/Hummingbird_project'
+} else {
+  .wd <- '/gpfs/loomis/pi/jetz/jm3669/Hummingbird_project'
+}
+
+#---- Initialize Environment ----#
+.seed <- 5326
+set.seed(.seed)
+
+#---- Set parameters for model runs ----#
+
+#species
+species_list = c("Loddigesia_mirabilis", "Ocreatus_underwoodii", "Oreotrochilus_leucopleurus")
+
+#SDMs are fitted with each combination of offsets
+#"none", "expert range map", "elevation" and "expert range map + elevation"
+
+#option for spatially thin occurrence records
 thinning = FALSE
-n_samp = 500
+
+#set the number of quadrature points in the coarse scale grid
 targe_n_obs = 50000
+
+#set the number of samples taken randomly from the posterior distribution
+n_samp = 500
+
+#inference types
+HB_inf = FALSE
+glmnet_inf = FALSE
+ppml_inf = FALSE
 
 #Loop over all species
 for (i in 1:length(species_list)) {
@@ -56,7 +70,7 @@ for (i in 1:length(species_list)) {
   scale_out <- round(sqrt(sum(!is.na(values(domain_temp[[1]])))/targe_n_obs))
   
   #Load data
-  load(paste(.wd, '/', .species, '_model_fits.RData', sep = ''))
+  load(paste(.wd, '/Model_fits/', .species, '_model_fits.RData', sep = ''))
   print(.species)
   
   #Create predictions over the geographic extent
@@ -72,17 +86,28 @@ for (i in 1:length(species_list)) {
   
   #Compute predictive accuracy of the models
   #cv for training data and predictive density for validation data
-  #source(paste(.wd, "R_code/Predictive_tests.R", sep = '/'))
-  #pred_metric <- Predictive_tests(.wd, model_fits, .species, pred_PA_data)
-  
-  #save(pred_metric, file = paste(.wd, '/', .species, '_validation.RData', sep = ''))
+  source(paste(.wd, "R_code/Predictive_tests.R", sep = '/'))
+  pred_metric <- Predictive_tests(.wd, model_fits, .species, pred_PA_data)
+  save(pred_metric, file = paste(.wd, '/Model_fits/', .species, '_validation.RData', sep = ''))
   
   #Visualizations
-  #source(paste(.wd, "R_code/Prediction_visualization_HB.R", sep = '/'))
-  #Prediction_visualization(.wd, model_fits, pred_data, n_samp, .species, scale_out)
-
-  source(paste(.wd, "R_code/Prediction_visualization_glmnet.R", sep = '/'))
-  Prediction_visualization(.wd, model_fits, pred_data, n_samp, .species, scale_out)
+  if (HB_inf) {
+    source(paste(.wd, "R_code/Prediction_visualization_HB.R", sep = '/'))
+    Prediction_visualization(.wd, model_fits, pred_data, n_samp, .species, scale_out)
+  }
+  
+  if (glmnet_inf) {
+    source(paste(.wd, "R_code/Prediction_visualization_glmnet.R", sep = '/'))
+    Prediction_visualization(.wd, model_fits, pred_data, n_samp, .species, scale_out)
+  }
+  
+  if (ppml_inf) {
+    source(paste(.wd, "R_code/Prediction_visualization_ppml.R", sep = '/'))
+    Prediction_visualization(.wd, model_fits, pred_data, n_samp, .species, scale_out)
+  }
+  
+  
+  
   
 }
 

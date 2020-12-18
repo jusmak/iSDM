@@ -1,18 +1,26 @@
 Inference_glmnet_cv_x_fold <- function(wd, training_data, offset_full, ind_fold) {
   
+  # output matrices
   glmnet_cv_pred_dens <- matrix(NA, ncol = length(offset_full), nrow = length(offset_full))
   glmnet_cv_auc <- matrix(NA, ncol = length(offset_full), nrow = length(offset_full))
   model_fits_cv <- list()
   
+  # loop over different offsets used for model fitting
   for (i in 1:length(offset_full)) {
+    
+    # temporary output list and matrices for the specific offset
+    # columns are for the offsets used for predicting and rows for cross-validation folds
     model_fits_cv_offset <- list()
     lik_folds_pred_dens <- matrix(NA, nrow = length(ind_fold), ncol = length(offset_full))
     lik_folds_auc <- matrix(NA, nrow = length(ind_fold), ncol = length(offset_full))
     
     for (j in 1:length(ind_fold)) {
       
+      # keep other occurrence points as training data
       ind_temp <- ind_fold[[j]]
       ind_temp <- (1:sum(training_data$response==1))[-ind_temp]
+      
+      # keep all quadrature points in the training data
       ind_keep_1 <- c(ind_temp, (sum(training_data$response==1)+1):length(training_data$response))
       
       ##ADJUST DATA FOR THE SUBSAMPLE##
@@ -47,20 +55,29 @@ Inference_glmnet_cv_x_fold <- function(wd, training_data, offset_full, ind_fold)
       weights_temp[ind_quad[-ind_overlap]] <- 1
       
       #scale offsets to the number of occurrence points
-      offset_temp <- offset_full[[i]][ind_keep_1,]
+      #scale offsets to their original scale
+      offset_temp <- offset_full[[i]][ind_keep_1,]*(sum(training_data$response)/sum(training_data$weights))
+      
+      #compute population in the cross-validation fold
       pop_temp <- matrix(apply(offset_temp, 2, function(x) sum(x*weights_temp)), nrow = 1)
+      
+      #scale intensities to sum the population
       offset_temp <- mapply(function(x,y) x*sum(resp_temp)/y, data.frame(offset_temp), data.frame(pop_temp))
       
-      offset_temp_1 = log(offset_temp[,1]) - mean(log(offset_temp[,1])) + 
-        log(offset_temp[,2]) - mean(log(offset_temp[,2]))
-
-      form = ~ poly(cov1, degree = 2, raw = TRUE) + poly(cov2, degree = 2, raw = TRUE) + 
-        poly(cov3, degree = 2, raw = TRUE) + poly(cov4, degree = 2, raw = TRUE)
-      cv.glmnet.1 <-glmnet(formula = form, x = cov_temp_sc, 
-                              y = resp_temp/weights_temp,
-                              family = "poisson",
-                              offset = offset_temp_1,
-                              weights = weights_temp)
+      #scale intensities to diverge from constant distribution
+      offset_temp_1 <- offset_temp/(sum(resp_temp)/sum(weights_temp))
+      offset_temp_1 <- log(offset_temp_1[,1]) + log(offset_temp_1[,2])
+      
+      #formulate the model
+      resp <- resp_temp/weights_temp
+      x_temp <- model.matrix(resp ~ poly(cov_temp_sc, degree = 2, raw = TRUE))
+      
+      #fit model
+      cv.glmnet.1 <-glmnet(x = x_temp,
+                           y = resp,
+                           family = "poisson",
+                           offset = offset_temp_1,
+                           weights = weights_temp)
 
       model_fits_cv_offset[[j]] <- cv.glmnet.1
 
@@ -96,11 +113,16 @@ Inference_glmnet_cv_x_fold <- function(wd, training_data, offset_full, ind_fold)
       #loop over different offset choices for predictions
       for (k in 1:length(offset_full)) {
         
-        #get offset of the closest training point
-        offset_temp <- offset_full[[k]][ind_keep_1,]
+        #scale offsets to their original scale
+        offset_temp <- offset_full[[k]][ind_keep_1,]*(sum(training_data$response)/sum(training_data$weights))
+        
+        #compute population in the cross-validation fold
         pop_temp <- matrix(apply(offset_temp, 2, function(x) sum(x*weights_temp)), nrow = 1)
+        
+        #scale intensities to sum the population
         offset_temp <- mapply(function(x,y) x*sum(resp_temp)/y, data.frame(offset_temp), data.frame(pop_temp))
         
+        #get offset of the closest training point
         #offset for the quadrature points
         offset_temp_test <- offset_temp[resp_temp==0,]
         
@@ -111,28 +133,34 @@ Inference_glmnet_cv_x_fold <- function(wd, training_data, offset_full, ind_fold)
                                       (coord_temp_test[m,2] - coord_temp[,2])^2)
         }
         
+        #compile offsets
         offset_temp_test <- rbind(offset_temp[ind_close,], offset_temp_test)
+        offset_temp_test <- offset_temp/(sum(resp_temp)/sum(weights_temp))
+        offset_temp_test_pred <- log(offset_temp_test[,1]) + log(offset_temp_test[,2])
         
-        pred_lik <- matrix(NA, nrow = nrow(cov_temp_test_sc), ncol = 1)
-        offset_temp <- log(offset_temp_test[,1]) - mean(log(offset_temp_test[,1])) + 
-          log(offset_temp_test[,2]) - mean(log(offset_temp_test[,2]))
+        #predict
+        x_pred_temp <- model.matrix(~ poly(cov_temp_test_sc, degree = 2, raw = TRUE))
         
-        pred_validation <- predict(object = cv.glmnet.1, newx = cov_temp_test_sc,
-                newoffset = offset_temp)
+        pred_validation <- predict(object = cv.glmnet.1, newx = x_pred_temp,
+                newoffset = offset_temp_test_pred)
 
         #predictive density
-        pred_lik <- dpois(resp_temp_test, exp(pred_validation[,ncol(pred_validation)])*weights_temp_test, log = TRUE)
+        pred_lik <- dpois(resp_temp_test, exp(pred_validation[,ncol(pred_validation)] + log(weights_temp_test)), log = TRUE)
         lik_folds_pred_dens[j,k] <- sum(pred_lik)
         
-        #AUC
+        #occurrence probability -> AUC
         occ_prob <- 1-exp(-exp(pred_validation[,ncol(pred_validation)] + log(weights_temp_test)))
         suppressMessages(
           myRoc <- pROC::roc(response = resp_temp_test, predictor = occ_prob))
         lik_folds_auc[j,k] <- myRoc$auc
       }
     }
+    #store each model fit
     model_fits_cv[[i]] <- model_fits_cv_offset
-    glmnet_cv_pred_dens[i,] <- apply(lik_folds_pred_dens,2,mean)
+    
+    #compute average predictive density and AUC
+    glmnet_cv_pred_dens[i,] <- apply(lik_folds_pred_dens,2,function(x) -log(nrow(lik_folds_pred_dens)) + log(sum(exp(x))))
+    apply(lik_folds_pred_dens,2, mean)
     glmnet_cv_auc[i,] <- apply(lik_folds_auc,2,mean)
   }
   names(model_fits_cv) <- c('no_offset', 'range_map', 'elevation', 'both_offsets')

@@ -5,15 +5,8 @@ Get_prediction_data <- function(wd, training_data, species, scale_out) {
   
   #load geographic extent
   domain_temp <- stack(paste(wd,"/Data/Domains/", species, ".tif", sep = ''))
-  
   raster_cov_temp <- crop(raster_cov_temp, domain_temp)
   values(raster_cov_temp)[is.na(values(domain_temp)[,2]),] <- NA
-  
-  #load geographic extent
-  #extent <- read.csv(paste(wd,"Data/Environment/Extent_geographic_area.csv", sep = '/'), sep = ';', header = TRUE)
-  #extent_temp <- as.double(unlist(extent[extent[,1]==geographic_extent,2:5]))
-  #crop geographic area
-  #raster_cov_temp <- crop(raster_cov_temp, extent_temp)
   
   #rescale raster
   raster_cov_temp <- raster::aggregate(raster_cov_temp, fact = scale_out)
@@ -44,7 +37,7 @@ Get_prediction_data <- function(wd, training_data, species, scale_out) {
   expert_prior <- raster(paste(wd, "/Data/Range_map/", species, ".tif", sep = ''))
   
   #extract expert prior value in training locations
-  training_expert_prior <- raster::extract(expert_prior, xy_matrix)
+  expert_range <- raster::extract(expert_prior, xy_matrix)
   
   #define the lower and upper bounds of expert information
   offset_parameters <- read.csv(paste(wd, '/Data/Output_from_Diegos_draft/SDM_offset_parameters.csv', sep = ''))
@@ -55,24 +48,22 @@ Get_prediction_data <- function(wd, training_data, species, scale_out) {
   skew <- offset_parameters[offset_parameters$Species==species,4]
   shift <- offset_parameters[offset_parameters$Species==species,5]
   
-  offset_expert <- training_expert_prior
+  offset_expert <- expert_range
   #assign intensity for the cells inside of the range
-  offset_expert[!is.na(training_expert_prior)] <- (p_in)*sum(training_data$response)/(sum(!is.na(training_expert_prior))*scale_out^2)
+  offset_expert[!is.na(expert_range)] <- p_in*sum(training_data$response)/(sum(!is.na(expert_range))*scale_out^2)
   #assign intensity for the cells outside of the range
-  offset_expert[is.na(training_expert_prior)] <- (1-p_in)*sum(training_data$response)/(sum(is.na(training_expert_prior))*scale_out^2)
+  offset_expert[is.na(expert_range)] <- (1-p_in)*sum(training_data$response)/(sum(is.na(expert_range))*scale_out^2)
   #upper / lower asymptote of the intensity
-  u <- (p_in)*sum(training_data$response)/(sum(!is.na(training_expert_prior))*scale_out^2)
-  l <- (1-p_in)*sum(training_data$response)/(sum(is.na(training_expert_prior))*scale_out^2)
+  u <- p_in*sum(training_data$response)/(sum(!is.na(expert_range))*scale_out^2)
+  l <- (1-p_in)*sum(training_data$response)/(sum(is.na(expert_range))*scale_out^2)
   
   #smooth expert prior with a convolution kernel
   #compute distance to the range edge for the cells outside of the range
-  expert_range <- raster::extract(expert_prior, xy_matrix)
-  
   #take only points which are inside the range
   expert_range_inside <- coord_pred[!is.na(expert_range),]
   
   #training points which are outside the range
-  ind_NA <- matrix(which(is.na(training_expert_prior)))
+  ind_NA <- matrix(which(is.na(expert_range)))
   
   dist_range <- rep(NA,nrow(ind_NA))
   for (i in 1:nrow(ind_NA)) {
@@ -84,7 +75,7 @@ Get_prediction_data <- function(wd, training_data, species, scale_out) {
   smooth_prior <- u-(u-l)/(1+exp(-r*(dist_range-shift)))^(1/skew)
 
   #derive the predicted population
-  pop_i <- smooth_prior * (sum(is.na(training_expert_prior))*scale_out^2)
+  pop_i <- smooth_prior * scale_out^2
   
   #scale population to equal the number of presence observations
   pop_i <- pop_i/sum(pop_i)*((1-p_in)*sum(training_data$response))
@@ -93,8 +84,10 @@ Get_prediction_data <- function(wd, training_data, species, scale_out) {
   smooth_prior_sc <- pop_i/scale_out^2
   
   #combine with all other prior values
-  offset_expert[is.na(training_expert_prior)] <- smooth_prior_sc
+  offset_expert[is.na(expert_range)] <- smooth_prior_sc
   
+  #center the offset to zero
+  offset_expert <- offset_expert/(sum(training_data$response)/(scale_out^2*length(offset_expert)))
   
   ##ELEVATION##
   #read elevation offset
@@ -113,7 +106,6 @@ Get_prediction_data <- function(wd, training_data, species, scale_out) {
   dist_elev <- matrix(rep(NA, length(ind_out)*2), nrow = length(ind_out))
   for (i in 1:length(ind_out)) {
     dist_elev[i,] <- sqrt((c(elev_temp[ind_out[i]]-elev_range_sp[1], elev_temp[ind_out[i]]-elev_range_sp[2]))^2)
-    #dist_elev[i,] <- c(elev_temp[ind_out[i]]-elev_range_sp[1], elev_temp[ind_out[i]]-elev_range_sp[2])
   }
   
   #the parameter values are drawn from Diego's ms
@@ -153,10 +145,13 @@ Get_prediction_data <- function(wd, training_data, species, scale_out) {
   offset_elevation[ind_out] <- smooth_elev_prior_sc
   offset_elevation[-ind_out] <- u
   
+  #center the offset to zero
+  offset_elevation <- offset_elevation/(sum(training_data$response)/(scale_out^2*length(offset_expert)))
+  
   #bind all different offset scenarios
-  offset_full <- list(matrix(rep(sum(training_data$response)/(length(offset_expert)*scale_out^2),length(offset_expert)*2),nrow = length(offset_expert)),
-                      matrix(c(offset_expert, rep(sum(training_data$response)/(length(offset_expert)*scale_out^2),length(offset_expert))),nrow = length(offset_expert)),
-                      matrix(c(rep(sum(training_data$response)/(length(offset_expert)*scale_out^2),length(offset_expert)), offset_elevation),nrow = length(offset_expert)),
+  offset_full <- list(matrix(rep(1,length(offset_expert)*2),nrow = length(offset_expert)),
+                      matrix(c(offset_expert, rep(1,length(offset_expert))),nrow = length(offset_expert)),
+                      matrix(c(rep(1,length(offset_expert)), offset_elevation),nrow = length(offset_expert)),
                       matrix(c(offset_expert, offset_elevation),nrow = length(offset_expert)))
   
   pred_data <- list(cov_pred, coord_pred, offset_full)

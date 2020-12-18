@@ -1,56 +1,56 @@
-RunInference_v1 <- function(wd, species, thinning, target_n_obs, inference_type, HB_inf, glmnet_inf, ppml_inf) {
-  
-  # get environmental data set
-  source(paste(wd, "R_code/Get_env_data.R", sep = '/'))
-  env_data <- Get_env_data(wd, species)
-  
-  # get species observations
-  source(paste(wd, "R_code/Get_species_data.R", sep = '/'))
-  species_data <- Get_species_data(wd,species,env_data$min_coordinates,thinning)
-  
-  #set scale out according to the target_n_obs
-  domain_temp <- stack(paste(wd,"/Data/Domains/", species, ".tif", sep = ''))
-  scale_out <- round(sqrt(sum(!is.na(values(domain_temp[[1]])))/50000))
-  
-  #sort data for inference
-  source(paste(wd, "R_code/PP_training_data.R", sep = '/'))
-  training_data <- PP_training_data(wd, env_data, species_data, scale_out)
-  
-  #define offsets (expert range map + elevation)
-  source(paste(wd, "R_code/Get_offsets.R", sep = '/'))
-  offset_full <- Get_offsets(wd, training_data, env_data, species)
+RunInference_v1 <- function(wd, species, data, HB_inf, glmnet_inf, ppml_inf, lik, thinning, target_n_obs, m_category) {
 
-  #conduct Hierarchical Bayesian inference for each different offset scenario
-  fit_hb_all <- list()
-  if (HB_inf) {
-    source(paste(wd, "R_code/Inference_HB.R", sep = '/'))
-    for (i in 1:4) {
-      fit_hb <- Inference_HB(wd, training_data, offset_full[[i]])
-      fit_hb_all[[i]] <- fit_hb
+  thin_mark <- ifelse(thinning, "thin", "not_thin")  
+  if(file.exists(paste(wd, "/Model_fits/", species, '_fits_', thin_mark, "_quad_n_",
+                       target_n_obs, '_m_cat_', m_category, '.RData', sep = ''))) {
+    
+    load(paste(wd, "/Model_fits/", species, '_fits_', thin_mark, "_quad_n_",
+               target_n_obs, '_m_cat_', m_category, '.RData', sep = ''))
+  } else {
+      
+    #conduct Hierarchical Bayesian inference for each different offset scenario
+    fit_hb_all <- list()
+    if (HB_inf) {
+      source(paste(wd, "R_code/Inference_HB.R", sep = '/'))
+      for (i in 1:4) {
+        fit_hb <- Inference_HB(wd, data$training_data, data$offset_full[[i]])
+        fit_hb_all[[i]] <- fit_hb
+      }
     }
-  }
-  
-  #conduct frequentist regularized regression for each different offset scenario
-  fit_glmnet_all <- list()
-  if (glmnet_inf) {
-    source(paste(wd, "R_code/Inference_glmnet.R", sep = '/'))
-    for (i in 1:4) {
-      fit_glmnet <- Inference_glmnet(wd, training_data, offset_full[[i]])
-      fit_glmnet_all[[i]] <- fit_glmnet
+    
+    #conduct frequentist regularized regression for each different offset scenario
+    fit_glmnet_all <- list()
+    if (glmnet_inf) {
+      source(paste(wd, "R_code/Inference_glmnet.R", sep = '/'))
+      for (i in 1:4) {
+        fit_glmnet <- Inference_glmnet(wd, data$training_data, data$offset_full[[i]])
+        fit_glmnet_all[[i]] <- fit_glmnet
+      }
     }
-  }
-  
-  #conduct frequentist regularized regression with ppmlasso for each different offset scenario
-  fit_ppml_all <- list()
-  if (ppml_inf) {
-    source(paste(wd, "R_code/Inference_ppml.R", sep = '/'))
-    for (i in 1:4) {
-      fit_ppml <- Inference_ppml(wd, training_data, offset_full[[i]])
-      fit_ppml_all[[i]] <- fit_ppml
+    
+    #conduct frequentist regularized regression with ppmlasso for each different offset scenario
+    fit_ppml_all <- list()
+    fit_ppml_comb_all <- list()
+    if (ppml_inf) {
+      source(paste(wd, "R_code/Inference_ppml.R", sep = '/'))
+      for (i in 1) {
+        fit_ppml <- Inference_ppml(wd, data$training_data, data$offset_full[[i]])
+        fit_ppml_all[[i]] <- fit_ppml
+      }
+      if (lik_comb) {
+        source(paste(wd, "R_code/Inference_ppml_comb.R", sep = '/'))
+        for (i in 1) {
+          fit_ppml <- Inference_ppml_comb(wd, data$training_data, data$inventory_data, data$offset_full[[i]])
+          fit_ppml_comb_all[[i]] <- fit_ppml
+        }
+      }
     }
+    
+    model_fits <- list(fit_hb_all,fit_glmnet_all,fit_ppml_all, fit_ppml_comb_all)
+    names(model_fits) <- c('HB_model', 'glmnet_model', 'ppml_model', 'ppml_comb_model')
+    
+    save(model_fits, file = paste(wd, "/Model_fits/", species, '_fits_', thin_mark, "_quad_n_",
+                                  target_n_obs, '_m_cat_', m_category, '.RData', sep = ''))
   }
-  
-  model_fits <- list(fit_hb_all,fit_glmnet_all,fit_ppml_all,training_data,offset_full)
-  names(model_fits) <- c('HB_model', 'glmnet_model', 'ppml_model', 'training_data', 'offset')
   return(model_fits)
 }

@@ -1,4 +1,4 @@
-Prediction_visualization <- function(wd, model_fits, pred_data, n_samp, species, scale_out) {
+Prediction_visualization <- function(wd, model_fits, training_data, offset_full, pred_data, n_samp, species, scale_out, pred_metric) {
   
   options(mc.cores = parallel::detectCores())
   
@@ -22,9 +22,9 @@ Prediction_visualization <- function(wd, model_fits, pred_data, n_samp, species,
 
   #create a background
   background <- raster_cov_temp$Chelsa_SA.1
-  sp_occ <- model_fits$training_data$coordinates[model_fits$training_data$response==1,]
-  sp_occ <- cbind(sp_occ[,1]*1000 + model_fits$training_data$min_coordinates[1],
-                  sp_occ[,2]*1000 + model_fits$training_data$min_coordinates[2])
+  sp_occ <- training_data$coordinates[training_data$response==1,]
+  sp_occ <- cbind(sp_occ[,1]*1000 + training_data$min_coordinates[1],
+                  sp_occ[,2]*1000 + training_data$min_coordinates[2])
   
   raster_cov_temp <- stack(paste(wd,"Data/Environment/Chelsa_SA.tif", sep = '/'))
   extent_temp <- c(-4e6, 5.5e6, -7.5e6, 2e6)
@@ -51,7 +51,7 @@ Prediction_visualization <- function(wd, model_fits, pred_data, n_samp, species,
   plot(background_domain, axes = F, box = FALSE, main = "Study domain", col = mycol_2, legend = FALSE)
   plot(background, axes = F, box = FALSE, legend = FALSE, add = TRUE, col = mycol)
   
-  plot(background, axes = F, box = FALSE, legend = FALSE, main = paste("Observations, n_obs = ", as.character(sum(model_fits$training_data$response)), sep = ''),
+  plot(background, axes = F, box = FALSE, legend = FALSE, main = paste("Observations, n_obs = ", as.character(sum(training_data$response)), sep = ''),
        col = mycol)
   points(sp_occ, cex = .5, pch = 20)
 
@@ -87,8 +87,7 @@ Prediction_visualization <- function(wd, model_fits, pred_data, n_samp, species,
 
     pred <- matrix(rep(beta_samp$alpha[ind_samples], nrow(pred_matrix)), nrow = nrow(pred_matrix), byrow = TRUE) + pred_matrix %*% t(beta_samp$beta[ind_samples,])
     for (j in 1:length(model_fits)) {
-      offset_temp <- log(pred_data$offset[[j]][,1]) - mean(log(pred_data$offset[[j]][,1])) +
-        log(pred_data$offset[[j]][,2]) - mean(log(pred_data$offset[[j]][,2]))
+      offset_temp <- log(pred_data$offset[[j]][,1]) + log(pred_data$offset[[j]][,2])
       mean_pred <- exp(pred + offset_temp)
       mean_pred <- apply(mean_pred, 1, mean)
       values(background)[ind_na] <- log(mean_pred)
@@ -107,26 +106,25 @@ Prediction_visualization <- function(wd, model_fits, pred_data, n_samp, species,
   
   #compute thresholds
   source(paste(wd, "/R_code/Plot_thresholds_HB.R", sep = ''))
-  thres_all <- Plot_thresholds(model_fits, ind_samples)
+  thres_all <- Plot_thresholds(model_fits, training_data, offset_full, ind_samples)
   thres_temp <- thres_all$TP05
   
   #Compile validation results
+  pred_dens_train <- matrix(NA, ncol = 2, nrow = length(model_fits$HB_model))
+  auc_train <- matrix(NA, ncol = 2, nrow = length(model_fits$HB_model))
   pred_dens_cv <- matrix(NA, ncol = 2, nrow = length(model_fits$HB_model))
   auc_cv <-matrix(NA, ncol = 2, nrow = length(model_fits$HB_model))
   pred_dens_ind <- matrix(NA, ncol = 2, nrow = length(model_fits$HB_model))
   auc_ind <- matrix(NA, ncol = 2, nrow = length(model_fits$HB_model))
-  pred_dens_train <- matrix(NA, ncol = 2, nrow = length(model_fits$HB_model))
-  auc_train <- matrix(NA, ncol = 2, nrow = length(model_fits$HB_model))
   
-  load(paste(.wd, '/', .species, '_validation.RData', sep = ''))
-  
+
   for (i in 1:length(model_fits$HB_model)) {
+    pred_dens_train[i,1] <- pred_metric$HB_train_valid$train_validation_HB_pred_dens[i,i]
+    auc_train[i,1] <- pred_metric$HB_train_valid$train_validation_HB_auc[i,i]
     pred_dens_cv[i,1] <- pred_metric$HB_cv_valid$HB_cv_pred_dens[i,i]
     auc_cv[i,1] <- pred_metric$HB_cv_valid$HB_cv_auc[i,i]
     pred_dens_ind[i,1] <- pred_metric$HB_ind_valid$ind_validation_HB_pred_dens[i,i]
     auc_ind[i,1] <- pred_metric$HB_ind_valid$ind_validation_HB_auc[i,i]
-    pred_dens_train[i,1] <- thres_all$pred_dens[i]
-    auc_train[i,1] <- thres_all$AUC_int[i]    
   }
   validation_results <- list(auc_train, pred_dens_train,
                              auc_cv, pred_dens_cv, auc_ind,
@@ -161,8 +159,7 @@ Prediction_visualization <- function(wd, model_fits, pred_data, n_samp, species,
     
     pred <- matrix(rep(beta_samp$alpha[ind_samples], nrow(pred_matrix)), nrow = nrow(pred_matrix), byrow = TRUE) + pred_matrix %*% t(beta_samp$beta[ind_samples,])
     for (j in i) {
-      offset_temp <- log(pred_data$offset[[j]][,1]) - mean(log(pred_data$offset[[j]][,1])) +
-        log(pred_data$offset[[j]][,2]) - mean(log(pred_data$offset[[j]][,2]))
+      offset_temp <- log(pred_data$offset[[j]][,1]) + log(pred_data$offset[[j]][,2])
       mean_pred <- exp(pred + offset_temp)
       mean_pred <- apply(mean_pred, 1, mean)
       values(background)[ind_na] <- log(mean_pred)
@@ -242,8 +239,7 @@ Prediction_visualization <- function(wd, model_fits, pred_data, n_samp, species,
     beta_samp <- extract(model_fits$HB_model[[i]])
     pred <- matrix(rep(beta_samp$alpha, nrow(pred_matrix)), nrow = nrow(pred_matrix), byrow = TRUE) + pred_matrix %*% t(beta_samp$beta)
     for (j in i) {
-      offset_temp <- log(pred_data$offset[[j]][,1]) - mean(log(pred_data$offset[[j]][,1])) +
-        log(pred_data$offset[[j]][,2]) - mean(log(pred_data$offset[[j]][,2]))
+      offset_temp <- log(pred_data$offset[[j]][,1]) + log(pred_data$offset[[j]][,2])
       mean_pred <- pred + offset_temp
       mean_pred <- apply(mean_pred, 1, function(x) sd(x))
       values(background)[ind_na] <- mean_pred
