@@ -4,6 +4,13 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   #load the expert prior
   expert_prior <- raster(paste(wd, "/Data/Range_map/", species, ".tif", sep = ''))
   
+  #load the domain
+  domain_temp <- stack(paste(wd,"/Data/Domains/", species, ".tif", sep = ''))
+  
+  #compute number of presence and absence cells
+  n_pres <- sum(!is.na(values(expert_prior)))
+  n_abs <- sum(!is.na(values(domain_temp[[2]])))-n_pres
+  
   #extract expert prior value in training locations
   coord_temp <- training_data$coordinates*1000
   coord_temp <- cbind(coord_temp[,1]+env_data$min_coordinates[1], coord_temp[,2]+env_data$min_coordinates[2])
@@ -19,13 +26,13 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   shift <- offset_parameters[offset_parameters$Species==species,5]
   
   offset_expert <- training_expert_prior
-  #assign intensity for the cells located inside the range
-  offset_expert[!is.na(training_expert_prior)] <- p_in*sum(training_data$response)/sum(training_data$weights[!is.na(training_expert_prior)])
-  #assign intensity for the cells located outside the range
-  offset_expert[is.na(training_expert_prior)] <- (1-p_in)*sum(training_data$response)/sum(training_data$weights[is.na(training_expert_prior)])
-  #upper / lower asymptote of the intensity
-  u <- p_in*sum(training_data$response)/sum(training_data$weights[!is.na(training_expert_prior)])
-  l <- (1-p_in)*sum(training_data$response)/sum(training_data$weights[is.na(training_expert_prior)])
+  #assign intensity for the cells located inside the range and scale them
+  offset_expert[!is.na(training_expert_prior)] <- p_in*sum(training_data$response)/
+    sum(training_data$weights[!is.na(training_expert_prior)])
+  
+  #upper / lower asymptote of the intensity when continuously mapping over the domain
+  u <- p_in*sum(training_data$response)/n_pres
+  l <- (1-p_in)*sum(training_data$response)/n_abs
   
   #smooth expert prior with a convolution kernel
   #compute distance to the range edge for the cells outside of the range
@@ -41,13 +48,10 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   smooth_prior <- u-(u-l)/(1+exp(-r*(dist_range-shift)))^(1/skew)
   
   #derive the predicted population
-  pop_i <- smooth_prior * training_data$weights[is.na(training_expert_prior)]
+  pop_i <- sum(smooth_prior*training_data$weights[is.na(training_expert_prior)])
   
-  #scale population to equal the number of presence observations
-  pop_i <- pop_i/sum(pop_i)*((1-p_in)*sum(training_data$response))
-  
-  #derive the intensity for each cell
-  smooth_prior_sc <- pop_i/training_data$weights[is.na(training_expert_prior)]
+  #scale intensities to match the population to the number of presence observations
+  smooth_prior_sc <- smooth_prior*(((1-p_in)*sum(training_data$response))/pop_i)
   
   #combine with all other prior values
   offset_expert[is.na(training_expert_prior)] <- smooth_prior_sc
@@ -63,10 +67,18 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   #elevation raster
   elev <- raster(paste(wd, "/Data/Elevation_range/elevation.tif", sep = ''))
   
-  #elevation in the quadrature points
-  elev_temp <- raster::extract(elev, coord_temp)
+  #crop elevation with domain
+  elev_temp <- crop(elev, domain_temp[[2]])
+  elev_values <- values(elev_temp)[!is.na(values(domain_temp[[2]]))]
   
-  #indexes of quadrature points outside of the range
+  #number of presences and absences
+  n_pres <- sum((elev_values >= elev_range_sp[1] & elev_values <= elev_range_sp[2]))
+  n_abs <- sum((elev_values < elev_range_sp[1] | elev_values > elev_range_sp[2]))
+  
+  #elevation in the data points
+  elev_temp <- raster::extract(elev, coord_temp)
+
+  #indexes of data points outside of the range
   ind_out <- which(elev_temp < elev_range_sp[1] | elev_temp > elev_range_sp[2])
   
   dist_elev <- matrix(rep(NA, length(ind_out)*2), nrow = length(ind_out))
@@ -86,10 +98,10 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   
   smooth_elev_prior <- rep(NA, nrow(dist_elev))
   #intensity between elevation limits
-  u <- .99*sum(training_data$response)/sum(training_data$weights[-ind_out])
+  u <- .99*sum(training_data$response)/n_pres
   
   #intensity outside of the elevation limits
-  l <- .01*sum(training_data$response)/sum(training_data$weights[ind_out])
+  l <- .01*sum(training_data$response)/n_abs
   
   #compute a smoothed prior value for points below
   smooth_elev_prior[ind_below] <- u-(u-l)/(1+exp(-r*(dist_elev[ind_below,1]-shift)))^(1/skew)
@@ -98,18 +110,19 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   smooth_elev_prior[ind_above] <- u-(u-l)/(1+exp(-r*(dist_elev[ind_above,2]-shift)))^(1/skew)
   
   #derive the predicted population
-  pop_i <- smooth_elev_prior * training_data$weights[ind_out]
+  pop_i <- sum(smooth_elev_prior * training_data$weights[ind_out])
   
   #scale population to equal the number of presence observations
-  pop_i <- pop_i/sum(pop_i)*(.01*sum(training_data$response))
+  smooth_elev_prior_sc <- smooth_elev_prior*((.01*sum(training_data$response))/pop_i)
   
-  #derive the intensity for each cell
-  smooth_elev_prior_sc <- pop_i/training_data$weights[ind_out]
-  
+  #scale offset value inside the range
+  elev_prior_range <- .99*sum(training_data$response)/
+    sum(training_data$weights[-ind_out])
+
   #combine elevation priors
   offset_elevation <- rep(NA, length(elev_temp))
   offset_elevation[ind_out] <- smooth_elev_prior_sc
-  offset_elevation[-ind_out] <- u
+  offset_elevation[-ind_out] <- elev_prior_range
   
   #center the offset to zero
   offset_elevation <- offset_elevation/(sum(training_data$response)/sum(training_data$weights))

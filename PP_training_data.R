@@ -1,4 +1,4 @@
-PP_training_data <- function(wd, env_data, species_data, scale_out) {
+PP_training_data <- function(wd, env_data, species_data, scale_out, weights_area) {
   
   #define covariate values for presence-observations
   #locate them to the closest cell coordinates
@@ -91,9 +91,10 @@ PP_training_data <- function(wd, env_data, species_data, scale_out) {
   #weights in those quadrature points are .5
   weights_fine_quad[ind_pres] <- .5
   
-  #weights for sparse quadrature points are scale_out^2
-  weights_coarse_quad <- rep(scale_out^2, nrow(quad_coarse_coordinates))
-  
+  #weights for sparse quadrature points are scale_out^2 or 1
+  weight_coarse <- ifelse(weights_area, scale_out^2, 1)
+  weights_coarse_quad <- rep(weight_coarse, nrow(quad_coarse_coordinates))
+
   #combine all weights into one vector
   weights <- c(weights_presence, weights_fine_quad, weights_coarse_quad)
   

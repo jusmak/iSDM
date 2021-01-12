@@ -1,12 +1,13 @@
-Get_data <- function(wd, species, thinning, target_n_obs) {
+Get_data <- function(wd, species, thinning, target_n_obs, weights_area) {
   
   #read data if a data file has been created earlier
   thin_mark <- ifelse(thinning, "thin", "not_thin")
+  weights_mark <- ifelse(weights_area, "wa", "not_wa")
   if(file.exists(paste(wd, "/Compiled_data/", species, '_', thin_mark, "_quad_n_",
-                       target_n_obs, '.R', sep = ''))) {
+                       target_n_obs, "_", weights_mark, '.R', sep = ''))) {
     
     load(paste(wd, "/Compiled_data/", species, '_', thin_mark, "_quad_n_",
-               target_n_obs, '.R', sep = ''))
+               target_n_obs, "_", weights_mark, '.R', sep = ''))
   } else {
     
     #get environmental data set
@@ -19,11 +20,11 @@ Get_data <- function(wd, species, thinning, target_n_obs) {
     
     #set scale out according to the target_n_obs
     domain_temp <- stack(paste(wd,"/Data/Domains/", species, ".tif", sep = ''))
-    scale_out <- round(sqrt(sum(!is.na(values(domain_temp[[1]])))/50000))
+    scale_out <- round(sqrt(sum(!is.na(values(domain_temp[[2]])))/target_n_obs))
     
     #sort data for inference
     source(paste(wd, "R_code/PP_training_data.R", sep = '/'))
-    training_data <- PP_training_data(wd, env_data, species_data, scale_out)
+    training_data <- PP_training_data(wd, env_data, species_data, scale_out, weights_area)
     
     #define offsets (expert range map + elevation)
     source(paste(wd, "R_code/Get_offsets.R", sep = '/'))
@@ -53,7 +54,7 @@ Get_data <- function(wd, species, thinning, target_n_obs) {
                      'pred_data', 'pred_PA_data', 'proj_raster', 'scale_out')
     
     save(data, file = paste(wd, "/Compiled_data/", species, '_', thin_mark, "_quad_n_",
-                     target_n_obs, '.R', sep = ''))    
+                            target_n_obs, "_", weights_mark, '.R', sep = ''))    
   }
   return(data)
 }

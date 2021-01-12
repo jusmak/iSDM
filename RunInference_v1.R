@@ -1,22 +1,33 @@
-RunInference_v1 <- function(wd, species, data, HB_inf, glmnet_inf, ppml_inf, lik, thinning, target_n_obs, m_category) {
+RunInference_v1 <- function(wd, species, data, HB_inf, glmnet_inf, ppml_inf, lik_comb, thinning, target_n_obs, m_category) {
 
-  thin_mark <- ifelse(thinning, "thin", "not_thin")  
+  thin_mark <- ifelse(thinning, "thin", "not_thin")
+  weights_mark <- ifelse(weights_area, "wa", "not_wa")
   if(file.exists(paste(wd, "/Model_fits/", species, '_fits_', thin_mark, "_quad_n_",
-                       target_n_obs, '_m_cat_', m_category, '.RData', sep = ''))) {
+                       target_n_obs, "_", weights_mark, '_m_cat_', m_category, '.RData', sep = ''))) {
     
     load(paste(wd, "/Model_fits/", species, '_fits_', thin_mark, "_quad_n_",
-               target_n_obs, '_m_cat_', m_category, '.RData', sep = ''))
+               target_n_obs, "_", weights_mark, '_m_cat_', m_category, '.RData', sep = ''))
   } else {
       
     #conduct Hierarchical Bayesian inference for each different offset scenario
     fit_hb_all <- list()
-    if (HB_inf) {
+    if (HB_inf & lik_comb == FALSE) {
       source(paste(wd, "R_code/Inference_HB.R", sep = '/'))
       for (i in 1:4) {
         fit_hb <- Inference_HB(wd, data$training_data, data$offset_full[[i]])
         fit_hb_all[[i]] <- fit_hb
       }
     }
+    fit_hb_comb_all <- list()
+    if (HB_inf & lik_comb) {
+      source(paste(wd, "R_code/Inference_HB_comb.R", sep = '/'))
+      for (i in 1:4) {
+        fit_hb <- Inference_HB_comb(wd, data$training_data, data$inventory_data,
+                                    data$offset_full[[i]], data$inventory_data$offset[[i]])
+        fit_hb_comb_all[[i]] <- fit_hb
+      }
+    }
+    
     
     #conduct frequentist regularized regression for each different offset scenario
     fit_glmnet_all <- list()
@@ -46,11 +57,11 @@ RunInference_v1 <- function(wd, species, data, HB_inf, glmnet_inf, ppml_inf, lik
       }
     }
     
-    model_fits <- list(fit_hb_all,fit_glmnet_all,fit_ppml_all, fit_ppml_comb_all)
-    names(model_fits) <- c('HB_model', 'glmnet_model', 'ppml_model', 'ppml_comb_model')
+    model_fits <- list(fit_hb_all,fit_glmnet_all,fit_ppml_all, fit_hb_comb_all, fit_ppml_comb_all)
+    names(model_fits) <- c('HB_model', 'glmnet_model', 'ppml_model', 'fit_hb_comb_all', 'ppml_comb_model')
     
     save(model_fits, file = paste(wd, "/Model_fits/", species, '_fits_', thin_mark, "_quad_n_",
-                                  target_n_obs, '_m_cat_', m_category, '.RData', sep = ''))
+                                  target_n_obs, "_", weights_mark, '_m_cat_', m_category, '.RData', sep = ''))
   }
   return(model_fits)
 }
