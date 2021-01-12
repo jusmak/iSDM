@@ -17,5 +17,5 @@ Inference_ppml <- function(wd, training_data, offset_full) {
                         fit_ppml$lambdas, fit_ppml$s.means, fit_ppml$s.sds, fit_ppml$lambdas)
   names(fit_temp) <- c('formula', 'coefficients', 'pen_lik', 'BIC', 'lambda', 's_mean', 's_sd')
   
-  return(fit_ppml)
+  return(fit_temp)
 }

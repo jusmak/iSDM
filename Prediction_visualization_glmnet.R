@@ -44,9 +44,9 @@ Prediction_visualization <- function(wd, model_fits, training_data, offset_full,
   par(mfrow = c(4,4), cex.main = .7, mai = c(0.1,0.1,0.2,.1))
   title_temp <- c("none", "exp", "elev", "exp + elev")
   x_temp <- model.matrix(~ poly(pred_data$covariates, degree = 2, raw = TRUE))
-  for (i in 1:length(model_fits)) {
+  for (i in 1:length(model_fits$glmnet_model)) {
     glmnet_temp <- model_fits$glmnet_model[[i]]
-    for (j in 1:length(model_fits)) {
+    for (j in 1:length(model_fits$glmnet_model)) {
       offset_temp <- log(pred_data$offset[[j]][,1]) + log(pred_data$offset[[j]][,2])
       pred <- predict(object = glmnet_temp, newx = x_temp,
                       newoffset = offset_temp)
@@ -77,7 +77,7 @@ Prediction_visualization <- function(wd, model_fits, training_data, offset_full,
   pred_dens_ind <- matrix(NA, ncol = 2, nrow = length(model_fits$HB_model))
   auc_ind <- matrix(NA, ncol = 2, nrow = length(model_fits$HB_model))
   
-  for (i in 1:length(model_fits$HB_model)) {
+  for (i in 1:length(model_fits$glmnet_model)) {
     pred_dens_train[i,1] <- pred_metric$glmnet_train_valid$train_validation_glmnet_pred_dens[i,i]
     auc_train[i,1] <- pred_metric$glmnet_train_valid$train_validation_glmnet_auc[i,i]
     pred_dens_cv[i,1] <- pred_metric$glmnet_cv_valid$glmnet_cv_pred_dens[i,i]
@@ -112,7 +112,7 @@ Prediction_visualization <- function(wd, model_fits, training_data, offset_full,
   
   x_temp <- model.matrix(~ poly(pred_data$covariates, degree = 2, raw = TRUE))
   
-  for (i in 1:length(model_fits)) {
+  for (i in 1:length(model_fits$glmnet_model)) {
     glmnet_temp <- model_fits$glmnet_model[[i]]
     for (j in i) {
       offset_temp <- log(pred_data$offset[[j]][,1]) + log(pred_data$offset[[j]][,2])

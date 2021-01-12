@@ -3,8 +3,8 @@ title: "SDM exploration - Hummingbirds"
 author: "Jussi Mäkinen"
 date: "12/7/2020"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ## Objective of the exploration
@@ -44,31 +44,62 @@ suppressPackageStartupMessages({
 })
 
 #Set SDM parameters
-species_list = c("Loddigesia_mirabilis", "Ocreatus_underwoodii", "Oreotrochilus_leucopleurus") #
-observations = "PO"
-geographic_extent = "South-America"
+species_list = c("Loddigesia_mirabilis", "Ocreatus_underwoodii") #
+#option for spatially thin occurrence records
 thinning = FALSE
+
+#set the number of quadrature points in the coarse scale grid
+target_n_obs = 50000
+
+#set the number of samples taken randomly from the posterior distribution
+#for computing the posterior predictive distribution
 n_samp = 500
-targe_n_obs = 50000
+
+#whether weights are assigned according to the area related to a quadrature point
+weights_area <- FALSE
 
 .species <- species_list[1]
 
 #set scale out according to the target_n_obs
 domain_temp <- stack(paste(.wd,"/Data/Domains/", .species, ".tif", sep = ''))
-scale_out <- round(sqrt(sum(!is.na(values(domain_temp[[1]])))/targe_n_obs))
+scale_out <- round(sqrt(sum(!is.na(values(domain_temp[[1]])))/target_n_obs))
 
-#Load data
-load(paste(.wd, '/', .species, '_model_fits.RData', sep = ''))
-print(.species)
+m_category = 1
 
-#Create predictions over the geographic extent
-#Get environmental prediction data
-source(paste(.wd, "R_code/Get_prediction_data.R", sep = '/'))
-pred_data <- Get_prediction_data(.wd, model_fits$training_data, .species, scale_out)
+#model fits for each species represent either category 1, 2 or 3
 
-#Get validation data
-source(paste(.wd, "R_code/Get_validation_data.R", sep = '/'))
-pred_PA_data <- Get_validation_data(.wd, model_fits$training_data, model_fits$offset, .species)
+if (m_category == 1) {
+  #inference types
+  HB_inf = TRUE
+  glmnet_inf = TRUE
+  ppml_inf = FALSE
+  #combine likelihoods for presence-only and presence-absence data
+  lik_comb = FALSE
+} 
+if (m_category == 2) {
+  #inference types
+  HB_inf = FALSE
+  glmnet_inf = FALSE
+  ppml_inf = TRUE
+  #combine likelihoods for presence-only and presence-absence data
+  lik_comb = TRUE
+} 
+if (m_category == 3) {
+  HB_inf = TRUE
+  glmnet_inf = FALSE
+  ppml_inf = FALSE
+  #combine likelihoods for presence-only and presence-absence data
+  lik_comb = TRUE
+}
+
+#get data
+source(paste(.wd, "R_code/Get_data.R", sep = '/'))
+data <- Get_data(.wd, .species, thinning, target_n_obs, weights_area)
+
+#get model fits
+source(paste(.wd, "R_code/RunInference_v1.R", sep = '/'))
+model_fits <- RunInference_v1(.wd, .species, data, HB_inf, glmnet_inf, ppml_inf,
+                              lik_comb, thinning, target_n_obs, m_category)
 
 ```
 ## 1. Data
@@ -97,9 +128,9 @@ pred_PA_data <- Get_validation_data(.wd, model_fits$training_data, model_fits$of
 
   #create a background
   background <- raster_cov_temp$Chelsa_SA.1
-  sp_occ <- model_fits$training_data$coordinates[model_fits$training_data$response==1,]
-  sp_occ <- cbind(sp_occ[,1]*1000 + model_fits$training_data$min_coordinates[1],
-                  sp_occ[,2]*1000 + model_fits$training_data$min_coordinates[2])
+  sp_occ <- data$training_data$coordinates[data$training_data$response==1,]
+  sp_occ <- cbind(sp_occ[,1]*1000 + data$training_data$min_coordinates[1],
+                  sp_occ[,2]*1000 + data$training_data$min_coordinates[2])
   
   raster_cov_temp <- stack(paste(.wd,"Data/Environment/Chelsa_SA.tif", sep = '/'))
   extent_temp <- c(-4e6, 5.5e6, -7.5e6, 2e6)
@@ -119,7 +150,7 @@ pred_PA_data <- Get_validation_data(.wd, model_fits$training_data, model_fits$of
   plot(background_domain, axes = F, box = FALSE, main = "Study domain", col = mycol_2, legend = FALSE)
   plot(background, axes = F, box = FALSE, legend = FALSE, add = TRUE, col = mycol)
   
-  plot(background, axes = F, box = FALSE, legend = FALSE, main = paste("Observations, n_obs = ", as.character(sum(model_fits$training_data$response)), sep = ''),
+  plot(background, axes = F, box = FALSE, legend = FALSE, main = paste("Observations, n_obs = ", as.character(sum(data$training_data$response)), sep = ''),
        col = mycol)
   points(sp_occ, cex = 1, pch = 20, col = "gray10")
   legend(x = 2.42e5, y = -2.6e6,  legend = "occurrence", col = "gray10", pch = 20)
@@ -132,24 +163,24 @@ Fig. 1. Location of study domain and locations of occurrence observations
 Quadrature points refer to background points, which are used as a technical mean to compute the likelihood of a presence-only data set.
 
 ``` {r quadrature scheme, echo = FALSE}
-  sp_occ <- model_fits$training_data$coordinates
-  sp_occ <- cbind(sp_occ[,1]*1000 + model_fits$training_data$min_coordinates[1],
-                  sp_occ[,2]*1000 + model_fits$training_data$min_coordinates[2])
+  sp_occ <- data$training_data$coordinates
+  sp_occ <- cbind(sp_occ[,1]*1000 + data$training_data$min_coordinates[1],
+                  sp_occ[,2]*1000 + data$training_data$min_coordinates[2])
   y_lim <- c(-2.4e6, -2.38e6)
   x_lim = c(2.3e5, 2.5e5)
   ind_temp <- which(sp_occ[,1] > x_lim[1] & sp_occ[,1] < x_lim[2] &
                       sp_occ[,2] > y_lim[1] & sp_occ[,2] < y_lim[2])
 
   # move presence points slightly
-  #sp_occ[model_fits$training_data$response==1,1] <- sp_occ[model_fits$training_data$response==1,1] + 250
-  #sp_occ[model_fits$training_data$response==1,2] <- sp_occ[model_fits$training_data$response==1,2] + 250
+  #sp_occ[data$training_data$response==1,1] <- sp_occ[data$training_data$response==1,1] + 250
+  #sp_occ[data$training_data$response==1,2] <- sp_occ[data$training_data$response==1,2] + 250
 
   #color presence points
-  col_points <- ifelse(model_fits$training_data$response[ind_temp] == 1, "red3", "gray10")
+  col_points <- ifelse(data$training_data$response[ind_temp] == 1, "red3", "gray10")
   cex_points <- rep(.5,length(ind_temp))
-  cex_points[model_fits$training_data$response[ind_temp] == 1] <- 2
+  cex_points[data$training_data$response[ind_temp] == 1] <- 2
     
-  plot(background, legend = FALSE, main = paste("Quadrature scheme, n_obs = ", as.character(sum(model_fits$training_data$response)), sep = ''),
+  plot(background, legend = FALSE, main = paste("Quadrature scheme, n_obs = ", as.character(sum(data$training_data$response)), sep = ''),
        col = mycol, xlim = x_lim, ylim = y_lim)
   points(sp_occ[ind_temp,], cex = cex_points, pch = 20, col = col_points)
   legend(x = 2.42e5, y = -2.396e6,  legend = c("occurrence", "quadrature point"), col = c("red3", "gray10"), pch = 20)
@@ -173,7 +204,7 @@ The varying sampling intensity of the quadrature points is accounted for with a 
   #color areas
   rbPal <- colorRampPalette(c('green','blue'))
   col_rb <- rbPal(2)
-  col_poly <- ifelse(model_fits$training_data$weights[ind_temp] == 25, col_rb[1], col_rb[2])
+  col_poly <- ifelse(data$training_data$weights[ind_temp] == 25, col_rb[1], col_rb[2])
   
   polygons_temp <- list()
 
@@ -181,13 +212,13 @@ The varying sampling intensity of the quadrature points is accounted for with a 
   res_domain <- res(domain_temp)/1000
   
   for (i in 1:nrow(sp_occ_temp)) {
-    d <- ifelse(model_fits$training_data$weights[ind_temp[i]] != 25, 500, 2500)
+    d <- ifelse(data$training_data$weights[ind_temp[i]] != 25, 500, 2500)
     poly_x <- c(sp_occ_temp[i,c(1,1)] - d*res_domain[1], sp_occ_temp[i,c(1,1)] + d*res_domain[1])
     poly_y <- c(sp_occ_temp[i,2] - d*res_domain[2], sp_occ_temp[i,c(2,2)] + d*res_domain[2], sp_occ_temp[i,2] - d*res_domain[2])
     polygons_temp[[i]] <- list(xx = poly_x, yy = poly_y, col = col_poly[i])
   }
   
-  plot(background, legend = FALSE, main = paste("Sampling weights, n_obs = ", as.character(sum(model_fits$training_data$response)), sep = ''),
+  plot(background, legend = FALSE, main = paste("Sampling weights, n_obs = ", as.character(sum(data$training_data$response)), sep = ''),
        col = mycol, xlim = x_lim, ylim = y_lim)
   lapply(polygons_temp,function(x){polygon(x$xx,x$yy,col=x$col,border="gray")})
   points(sp_occ_temp, cex = cex_points, pch = 20, col = col_points)
@@ -208,14 +239,14 @@ SDMs were fitted by using offset information based on expert range maps and prio
 ```{r offsets, echo = FALSE}
 
 par(mfrow = c(1,2), cex.main = .7, mai = c(0.1,0.1,0.2,0.1))
-values(background)[ind_na] <- log(pred_data$offset[[2]][,1])
-plot(background, axes = F, box = FALSE, main = "Expert range map", xaxt='n', yaxt='n', col = col_pal, zlim = quantile(log(pred_data$offset[[2]][,1]),c(0,.999)), legend.args=list(text="log(lambda)", line=.2 ,side=3, cex=.5), axis.args=list(cex.axis=.5))
+values(background)[ind_na] <- log(data$pred_data$offset[[2]][,1])
+plot(background, axes = F, box = FALSE, main = "Expert range map", xaxt='n', yaxt='n', col = col_pal, zlim = quantile(log(data$pred_data$offset[[2]][,1]),c(0,.999)), legend.args=list(text="log(lambda)", line=.2 ,side=3, cex=.5), axis.args=list(cex.axis=.5))
 
 
 values(background)[ind_na] <- 1
 plot(background, axes = F, box = FALSE, legend = FALSE)
-values(background)[ind_na] <- log(pred_data$offset[[3]][,2])
-plot(background, axes = F, box = FALSE, main = "Elevation offset", xaxt='n', yaxt='n', col = col_pal,zlim = quantile(log(pred_data$offset[[2]][,1]),c(0,.999)), legend.args=list(text="log(lambda)", line=.2 ,side=3, cex=.5), axis.args=list(cex.axis=.5), add = T)
+values(background)[ind_na] <- log(data$pred_data$offset[[3]][,2])
+plot(background, axes = F, box = FALSE, main = "Elevation offset", xaxt='n', yaxt='n', col = col_pal,zlim = quantile(log(data$pred_data$offset[[2]][,1]),c(0,.999)), legend.args=list(text="log(lambda)", line=.2 ,side=3, cex=.5), axis.args=list(cex.axis=.5), add = T)
 
 
 ```
@@ -240,12 +271,20 @@ Fig. 5. Mappings of model covariates.
 
 Generally in a SDM context, a point process models jointly the total number and spatial locations of species occurrence points. Here, I applied inhomogeneous Poisson point process, which assumes that locations of species occurrence points are independently distributed and their sum over the study area is Poisson distributed. The locations of species occurrence points depend on the species intensity (=areal density) which varies spatially.
 In this exploration I conditioned the species intensity on the environmental covariates.
-Likelihood of a Poisson point process is defined as:
-$$ l(\lambda; s_P) = \sum_{i=1}^{m} ln(\lambda(s_i)) - \int_A \lambda(s),\mathrm{d}s$$
-,where lambda is for the species intensity, s a spatial location and <em>A</em> is for the study area. However, the integral over the study area cannot be computed and that needs to be approximated by discretizing the study area as we saw in the figures 2 and 3. High number of quadrature points (> 10000) and sampling weights related to each quadrature point improve estimation accuracy of the model. Given the quadrature scheme, a Poisson point process model can be fitted as a normal Poisson regression, also known as log-linear regression.
+Likelihood of a Poisson point process is defined as
+$$ l(\lambda; s_P) = \sum_{i=1}^{m} log(\lambda(s_i)) - \int_A \lambda(s)\mathrm{d}s,$$
+where lambda is for the species intensity, s a spatial location and <em>A</em> is for the study area. However, the integral over the study area cannot be computed and that needs to be approximated by discretizing the study area as we saw in the figures 2 and 3. High number of quadrature points (> 10000) and sampling weights related to each quadrature point improve estimation accuracy of the model. Given the quadrature scheme, a Poisson point process model can be fitted as a normal Poisson regression, also known as log-linear regression.
 Species intensity is modeled as a log linear model so that:
-$$ log(\lambda) = \alpha + \sum_{k=1}^{K} x_k^T*\beta_k $$
-, where alpha is for the model estimate,  beta is for the linear weight related to each covariate and K is the number of covariates and their transformations, such as products and second order polynomials. The offset information is included in the log-linear model as a fixed variable.
+$$ log(\lambda) = \alpha + \sum_{k=1}^{K} x_k^T*\beta_k, $$
+where alpha is for the model estimate,  beta is for the linear weight related to each covariate and K is the number of covariates and their transformations, such as products and second order polynomials. The offset information is included in the log-linear model as a fixed variable.
+
+To condition the inference on the offsets we divide lambda by the offset so that
+$$ log(\lambda/\lambda_{offset}) = log(\lambda) - log(\lambda_{offset}). $$
+This changes the log-linear model to
+$$ log(\lambda/\lambda_{offset}) = \alpha + \sum_{k=1}^{K} x_k^T*\beta_k - log(\lambda_{offset}), $$
+Here offset intensity is scaled to sum to the number of species observations over the study area. To avoid changes in estimates of model intercept we scaled the offset to sum to zero over the study area. We did this by subtracting average species intensity over the study area from the offset intensity
+$$ log(\lambda_{offset_{scaled}}) = log(\lambda_{offset_{raw}}*A/n), $$
+where A is the study area and n is the number of species observations.
 
 ### 2.2. Inference
 I fitted the model to estimate posterior distributions of the unknown parameters. Each parameter was assigned an uninformative prior so that:
@@ -265,21 +304,17 @@ The posterior distributions of model parameters were used for predicting species
   ind_samples <- sample(1:nrow(beta_samp$alpha), n_samp)
 
   #matrix of covariate values in prediction cells  
-  pred_matrix <- cbind(pred_data$covariates, pred_data$covariates^2)
-  
-  
-  
+  pred_matrix <- cbind(data$pred_data$covariates, data$pred_data$covariates^2)
+
   par(mfrow = c(1,2), cex.main = .7, mai = c(0.1,0.1,0.2,.1))
   i=2 #expert offset for fitting
   j=i #expert offset for predicting
-  offset_temp <- log(pred_data$offset[[j]][,1]) - mean(log(pred_data$offset[[j]][,1])) +
-    log(pred_data$offset[[j]][,2]) - mean(log(pred_data$offset[[j]][,2]))
-  
+  offset_temp <- log(data$pred_data$offset[[j]][,1]) + log(data$pred_data$offset[[j]][,2])  
   
   beta_samp <- extract(model_fits$HB_model[[i]])
 
   pred <- matrix(rep(beta_samp$alpha[ind_samples], nrow(pred_matrix)), nrow = nrow(pred_matrix), byrow = TRUE) + pred_matrix %*% t(beta_samp$beta[ind_samples,])
-  
+
   mean_pred <- exp(pred + offset_temp)
   mean_pred <- apply(mean_pred, 1, mean)
   values(background)[ind_na] <- log(mean_pred)

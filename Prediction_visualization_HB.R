@@ -82,11 +82,11 @@ Prediction_visualization <- function(wd, model_fits, training_data, offset_full,
   
   par(mfrow = c(4,4), cex.main = .7, mai = c(0.1,0.1,0.2,.1))
   title_temp <- c("none", "exp", "elev", "exp + elev")
-  for (i in 1:length(model_fits)) {
+  for (i in 1:length(model_fits$HB_model)) {
     beta_samp <- extract(model_fits$HB_model[[i]])
 
     pred <- matrix(rep(beta_samp$alpha[ind_samples], nrow(pred_matrix)), nrow = nrow(pred_matrix), byrow = TRUE) + pred_matrix %*% t(beta_samp$beta[ind_samples,])
-    for (j in 1:length(model_fits)) {
+    for (j in 1:length(model_fits$HB_model)) {
       offset_temp <- log(pred_data$offset[[j]][,1]) + log(pred_data$offset[[j]][,2])
       mean_pred <- exp(pred + offset_temp)
       mean_pred <- apply(mean_pred, 1, mean)
@@ -154,7 +154,7 @@ Prediction_visualization <- function(wd, model_fits, training_data, offset_full,
   par(mfrow = c(1,4), cex.main = .7, mai = c(0.1,0.1,0.2,.1))
   title_temp <- c("none", "exp", "elev", "exp + elev")
   
-  for (i in 1:length(model_fits)) {
+  for (i in 1:length(model_fits$HB_model)) {
     beta_samp <- extract(model_fits$HB_model[[i]])
     
     pred <- matrix(rep(beta_samp$alpha[ind_samples], nrow(pred_matrix)), nrow = nrow(pred_matrix), byrow = TRUE) + pred_matrix %*% t(beta_samp$beta[ind_samples,])
@@ -235,7 +235,7 @@ Prediction_visualization <- function(wd, model_fits, training_data, offset_full,
   
   par(mfrow = c(1,4), cex.main = .7, mai = c(0.1,0.1,0.2,.1))
   title_temp <- c("none", "exp", "elev", "exp + elev")
-  for (i in 1:length(model_fits)) {
+  for (i in 1:length(model_fits$HB_model)) {
     beta_samp <- extract(model_fits$HB_model[[i]])
     pred <- matrix(rep(beta_samp$alpha, nrow(pred_matrix)), nrow = nrow(pred_matrix), byrow = TRUE) + pred_matrix %*% t(beta_samp$beta)
     for (j in i) {

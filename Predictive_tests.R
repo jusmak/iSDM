@@ -1,15 +1,18 @@
 Predictive_tests <- function(wd, model_fits, species, training_data, offset_full, pred_PA_data, proj_raster,
-                             HB_inf, glmnet_inf, ppml_inf, thinning, target_n_obs, m_category,n_samp) {
+                             HB_inf, glmnet_inf, ppml_inf, lik_comb, thinning, target_n_obs, m_category,n_samp) {
 
-  samp_temp <- extract(model_fits$HB_model[[1]])
-  samp_temp <- sample(1:length(samp_temp$alpha),n_samp,replace=FALSE)
-  thin_mark <- ifelse(thinning, "thin", "not_thin")  
-
+  if (m_category == 1) {
+    samp_temp <- extract(model_fits$HB_model[[1]])
+    samp_temp <- sample(1:length(samp_temp$alpha),n_samp,replace=FALSE)
+  }
+  
+  thin_mark <- ifelse(thinning, "thin", "not_thin")
+  weights_mark <- ifelse(weights_area, "wa", "not_wa")
   if(file.exists(paste(wd, '/Model_fits/', species, '_validation_', thin_mark, "_quad_n_",
-                       target_n_obs, '_m_cat_', m_category, '.RData', sep = ''))) {
+                       target_n_obs, "_", weights_mark, '_m_cat_', m_category, '.RData', sep = ''))) {
     
     load(paste(wd, '/Model_fits/', species, '_validation_', thin_mark, "_quad_n_",
-               target_n_obs, '_m_cat_', m_category, '.RData', sep = ''))
+               target_n_obs, "_", weights_mark, '_m_cat_', m_category, '.RData', sep = ''))
   } else {
 
     #update here the real ind_fold
@@ -41,7 +44,7 @@ Predictive_tests <- function(wd, model_fits, species, training_data, offset_full
     }
   
     ##HB
-    if (HB_inf) {
+    if (HB_inf & lik_comb == FALSE) {
       ##fit to data
       source(paste(wd, "R_code/Inference_HB_interp.R", sep = '/'))
       HB_train_valid <- Inference_HB_interp(wd, model_fits, training_data, offset_full, samp_temp)
@@ -58,7 +61,27 @@ Predictive_tests <- function(wd, model_fits, species, training_data, offset_full
       HB_cv_valid <- list()
       HB_ind_valid <- list()
     }
-  
+    if (HB_inf & lik_comb) {
+#      ##fit to data
+#      source(paste(wd, "R_code/Inference_HB_comb_interp.R", sep = '/'))
+#      HB_comb_train_valid <- Inference_HB_interp(wd, model_fits, training_data, offset_full, samp_temp)
+      HB_comb_train_valid <- list()
+      
+      ##5-fold-cv of presence-only data
+      source(paste(wd, "R_code/Inference_HB_comb_cv_x_fold.R", sep = '/'))
+      HB_comb_cv_valid <- Inference_HB_cv_x_fold(wd, model_fits, training_data, offset_full, ind_fold,
+                                                 pred_PA_data)
+      
+#      ##predictive density in the independent validation points
+#      source(paste(wd, "R_code/Inference_HB_comb_ind_validation.R", sep = '/'))
+#      HB_comb_ind_valid <- Inference_HB_ind_validation(wd, model_fits, pred_PA_data, samp_temp)
+      HB_comb_ind_valid <- list()
+    } else {
+      HB_comb_train_valid <- list()
+      HB_comb_cv_valid <- list()
+      HB_comb_ind_valid <- list()
+    }
+
     ##glmnet
     if (glmnet_inf) {
       ##fit to data
@@ -99,13 +122,18 @@ Predictive_tests <- function(wd, model_fits, species, training_data, offset_full
       ppmlasso_ind_valid <- list()
     }
     
-    predictive_validation <- list(HB_train_valid, HB_cv_valid, HB_ind_valid, glmnet_train_valid, glmnet_cv_valid, glmnet_ind_valid,
+    predictive_validation <- list(HB_train_valid, HB_cv_valid, HB_ind_valid, 
+                                  HB_comb_train_valid, HB_comb_cv_valid, HB_comb_ind_valid, 
+                                  glmnet_train_valid, glmnet_cv_valid, glmnet_ind_valid,
                                   ppmlasso_train_valid, ppmlasso_cv_valid, ppmlasso_ind_valid)
-    names(predictive_validation) <- c('HB_train_valid', 'HB_cv_valid', 'HB_ind_valid', 'glmnet_train_valid', 'glmnet_cv_valid', 'glmnet_ind_valid',
+    
+    names(predictive_validation) <- c('HB_train_valid', 'HB_cv_valid', 'HB_ind_valid',
+                                      'HB_comb_train_valid', 'HB_comb_cv_valid', 'HB_comb_ind_valid', 
+                                      'glmnet_train_valid', 'glmnet_cv_valid', 'glmnet_ind_valid',
                                       'ppmlasso_train_valid', 'ppmlasso_cv_valid', 'ppmlasso_ind_valid')
     
     save(predictive_validation, file = paste(wd, '/Model_fits/', species, '_validation_', thin_mark, "_quad_n_",
-                                   target_n_obs, '_m_cat_', m_category, '.RData', sep = ''))  
+                                             target_n_obs, "_", weights_mark, '_m_cat_', m_category, '.RData', sep = ''))
   }
   return(predictive_validation)
   }
