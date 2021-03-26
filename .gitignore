@@ -1,6 +1,7 @@
 README_local.txt
 job_script_SDM.txt
 .Rhistory
-Inference_ppml_comb_v2.R
-Renner_et_al_2019_comb_lasso.R
-comb_test.R
+Combine_offset_information.R
+species_list_v1.txt
+species_list_v2.txt
+test_ind.R
