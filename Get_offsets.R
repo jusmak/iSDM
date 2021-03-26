@@ -38,11 +38,8 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   #compute distance to the range edge for the cells outside of the range
   ind_NA <- matrix(which(is.na(training_expert_prior)))
   
-  dist_range <- rep(NA,nrow(ind_NA))
-  for (i in 1:nrow(ind_NA)) {
-    dist_range[i] <- min(sqrt((training_data$coordinates[ind_NA[i],1]-training_data$coordinates[-ind_NA,1])^2 + 
-                           (training_data$coordinates[ind_NA[i],2]-training_data$coordinates[-ind_NA,2])^2))
-    }
+  dist_range <- apply(ind_NA, 1, function(x) min(sqrt((training_data$coordinates[x,1]-training_data$coordinates[-ind_NA,1])^2 + 
+                                                        (training_data$coordinates[x,2]-training_data$coordinates[-ind_NA,2])^2)))
   
   #compute a smoothed prior value
   smooth_prior <- u-(u-l)/(1+exp(-r*(dist_range-shift)))^(1/skew)
@@ -97,6 +94,7 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   ind_above <- which(elev_temp[ind_out] > elev_range_sp[2])
   
   smooth_elev_prior <- rep(NA, nrow(dist_elev))
+  
   #intensity between elevation limits
   u <- .99*sum(training_data$response)/n_pres
   
@@ -126,7 +124,7 @@ Get_offsets <- function(wd, training_data, env_data, species) {
   
   #center the offset to zero
   offset_elevation <- offset_elevation/(sum(training_data$response)/sum(training_data$weights))
-  
+
   #bind all different offset scenarios
   offset_full <- list(matrix(rep(1,length(offset_expert)*2),nrow = length(offset_expert)),
                       matrix(c(offset_expert, rep(1,length(offset_expert))),nrow = length(offset_expert)),

@@ -9,7 +9,14 @@ Get_species_data <- function(wd, species, min_coordinates, thinning) {
   sp_occ_thin <- cleanOcc(speciesCSV = occ_folder, env = domain_temp, doThin = thinning)
   
   #derive points
-  sp_occ <- as.data.frame(sp_occ_thin)[,3:4]
+  if (thinning) {
+    col_ind <- match(c("pres.Longitude", "pres.Latitude"),colnames(as.data.frame(sp_occ_thin)))
+  } else {
+    col_ind <- match(c("pres.lon", "pres.lat"),colnames(as.data.frame(sp_occ_thin)))
+  }
+  
+  
+  sp_occ <- as.data.frame(sp_occ_thin)[,col_ind]
   
   #scale the coordinates of the species occurrence records with the same coordinates
   sp_occ <- cbind(sp_occ[,1]-min_coordinates[1],sp_occ[,2]-min_coordinates[2])

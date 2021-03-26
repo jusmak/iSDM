@@ -3,7 +3,7 @@ Inference_HB_cv_x_fold <- function(wd, model_fits, training_data, offset_full, i
   # prior for the variation of the linear weights
   linear_sigma = 10
   #set initial values
-  inits_chain1 <- list(alpha = -1, alpha_bias= -1, beta = rep(-1,8))
+  inits_chain1 <- list(alpha = -.1, alpha_bias= -.1, beta = rep(-.1,8))
   
   # output matrices
   HB_cv_pred_dens <- matrix(NA, ncol = length(offset_full), nrow = length(offset_full))

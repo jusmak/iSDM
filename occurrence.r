@@ -76,7 +76,7 @@ cleanOcc=function(speciesCSV,
 			if(doThin &&  length(pres)>thinCutoff){
 				if(verbose>2) print(paste0(species,': ','  thinning presences'))
 				#-- use regular thinning algorithm if <800 points
-				if(length(pres)<800){
+				if(length(pres)<2001){
 					#-- thin.algorithm wants degrees as units
 					tmp.proj=CRS('+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs')
 					real.proj=projection(pres)

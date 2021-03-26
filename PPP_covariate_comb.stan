@@ -30,10 +30,10 @@ model {
   
   // observation model
   for(i in 1:N){
-    target += poisson_log_lpmf(y[i] | offset[i] + alpha + x[i,]*beta + log(weights[i]));
+    target += poisson_log_lpmf(y[i] | offset[i] + alpha + x[i,]*beta) * weights[i];
   }
   for(j in 1:N_inv){
-    target += bernoulli_lpmf(y_inv[j] | 1-exp(-exp(offset_inv[j] + alpha + alpha_bias + x[j,]*beta)));
+    target += bernoulli_lpmf(y_inv[j] | 1-exp(-exp(offset_inv[j] + alpha + alpha_bias + x_inv[j,]*beta)));
   }
   
 }

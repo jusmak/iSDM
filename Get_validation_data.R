@@ -29,7 +29,7 @@ Get_validation_data <- function(wd, training_data, offset, species) {
   survey_jp <- left_join(survey_sites[!is.na(ind_site),], survey_species)
   
   #Define locations where species is present
-  presence_loc <- data.frame(survey_jp[survey_jp$Spname=='Ocreatus_underwoodii',2])
+  presence_loc <- data.frame(survey_jp[survey_jp$Spname==species,2])
   ind_pres <- apply(presence_loc,1, function(x) which(survey_sites[!is.na(ind_site),2] == x))
   
   #define a response variable
