@@ -7,3 +7,5 @@ species_list_v2.txt
 test_ind.R
 SDM_v1_scripts/
 Rmarkdown_scripts/
+Get_offsets_full_pred.R
+show_offsets_sum.R

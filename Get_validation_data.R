@@ -25,19 +25,16 @@ Get_validation_data <- function(wd, training_data, offset, species) {
   #Define locations where species is present
   survey_species <- read.csv(paste(wd, '/Data/PA_observations/Juan_parra_checklists/SpeciesxSite8Feb2011.csv', sep = ''))
   survey_species <- survey_species[,c(1:2,5)]
-  #Join species with the survey locations
-  survey_jp <- left_join(survey_sites[!is.na(ind_site),], survey_species)
+  pres_sp <- survey_species[survey_species$Spname==species,]
   
-  #Define locations where species is present
-  presence_loc <- data.frame(survey_jp[survey_jp$Spname==species,2])
-  ind_pres <- apply(presence_loc,1, function(x) which(survey_sites[!is.na(ind_site),2] == x))
+  #Join presences with survey locations
+  survey_jp <- left_join(survey_sites[!is.na(ind_site),], pres_sp)
   
   #define a response variable
   resp <- rep(0, nrow(cov_pred))
-  if (length(ind_pres)>0) {
-    resp[ind_pres] <- 1
-  }
+  resp[!is.na(survey_jp$Spname)] <- 1
   
+  #transform coordinates
   coord_pred <- cbind(coord_survey_sites[,1]-training_data$min_coordinates[1],
                       coord_survey_sites[,2]-training_data$min_coordinates[2])/1000
 
