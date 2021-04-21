@@ -1,0 +1,72 @@
+R_code
+by Jussi Mäkinen
+started 4-21-2021
+
+Content:
+R_code for running SDMs for a few hummingbird species
+SDMs are run by dependent r scripts that are for specific analysis steps
+
+Scripts:
+
+Combining_data_spat_v1:
+ - combine PO and PA data sets
+ - multiple species (78 most prevalent in the PA data set)
+ - run different spatial models for an integrated SDM, and for a comparison to single likelihood models, run separately also for both data sets
+ - cross-validate models by splitting the presence-absence data in three spatially distinct blocks
+ - fit a spatial random effect for PO data set to fit sampling intensity and thin species intensity
+
+Get_data:
+ - combines all data compiling functions
+
+Get_env_data:
+ - collects the environmental rasters, coordinates and offset information (although offsets are not used here)
+
+Get_species_po_data:
+ - get coordinates of presence-only observations
+
+Get_species_pa_data:
+ - get coordinates, covariates and species occurrence records in the presence-absence data points
+
+Inference_HB_comb_v2
+ - conduct inference for combined data sets
+ - Hierarchical Bayesian inference with NUTS in stan
+ - collects scripts for running different models with different spatial effects
+
+occurrence:
+ - MOL script for cleaning and thinning presence-only observations
+
+PP_training_data:
+ - collect presence-only points and define quadrature points and weights
+ - create a data set based on presence-only and quadrature points
+
+PPP_po_non_spat
+ - stan code for fitting a model for presence-only data without a spatial random effect
+
+PPP_po_spat
+ - stan code for fitting a model for presence-only data with a spatial random effect
+
+PPP_po_restr_spat
+ - stan code for fitting a model for presence-only data with a restricted spatial random effect
+
+PPP_pa_non_spat
+ - stan code for fitting a model for presence-absence data without a spatial random effect
+
+PPP_comb_non_spat
+ - stan code for fitting an integrated model without a spatial random effect
+
+PPP_comb_spat
+ - stan code for fitting an integrated model with a spatial random effect
+
+PPP_comb_restr_spat
+ - stan code for fitting an integrated model with a restricted spatial random effect
+ 
+Predictive_tests_v2:
+ - cross-validate models
+ - sample from posterior for each given sample of the presence-absence data
+   (initialize to posterior samples from the full data sample and take less samples)
+
+RunInference_v2:
+ - collect data sets and conduct inferences
+
+spatialCV:
+ - MOL-script for setting blocks of training/testing sets
