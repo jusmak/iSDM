@@ -4,10 +4,10 @@ RunInference_v2 <- function(wd, species, data, thinning, thinning_PA, weights_ar
   thin_PA_mark <-  ifelse(thinning_PA, "_thin_PA", "_not_thin_PA")
   weights_mark <- ifelse(weights_area, "wa", "not_wa")
   if(file.exists(paste(wd, "/Model_fits_v2/", species, '_fits_', thin_mark, thin_PA_mark, "_quad_n_",
-                       target_n_obs, "_", weights_mark, '_m_cat_', m_category, '.RData', sep = ''))) {
+                       target_n_obs, "_", weights_mark, '.RData', sep = ''))) {
     
     load(paste(wd, "/Model_fits_v2/", species, '_fits_', thin_mark, thin_PA_mark, "_quad_n_",
-               target_n_obs, "_", weights_mark, '_m_cat_', m_category, '.RData', sep = ''))
+               target_n_obs, "_", weights_mark, '.RData', sep = ''))
   } else {
     
     source(paste(wd, "R_code/Inference_HB_comb_v2.R", sep = '/'))
