@@ -28,7 +28,7 @@ Get_data <- function(wd, species, thinning, target_n_obs, weights_area) {
     
     #get species data from the inventories
     source(paste(.wd, "R_code/Get_species_pa_data.R", sep = '/'))
-    inventory_data <- Get_species_pa_data(wd, training_data, species)
+    inventory_data <- Get_species_pa_data(wd, env_data, training_data, species)
     
     #derive the projection of the rasters (needed in setting folds in cross-validation)
     raster_cov_temp <- stack(paste(wd,"Data/Environment/Chelsa_SA.tif", sep = '/'))

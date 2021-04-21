@@ -1,4 +1,4 @@
-Get_species_pa_data <- function(wd, training_data, species) {
+Get_species_pa_data <- function(wd, env_data, training_data, species) {
   #Load independent validation data
   #Survey locations, get coordinates of the survey sites
   survey_sites <- read.csv(paste(wd, '/Data/PA_observations/Juan_parra_checklists/Sites_8Feb2011.csv', sep = ''))
