@@ -74,7 +74,7 @@ Inference_spat_po <- function(wd, data, n_samples, burn_in) {
   
   #set initial values
   inits_chain1 <- list(lengthscale = .1, sigma = .1, beta = rep(-1,9),
-                       eta = rep(.1,length(training_data$response)))
+                       eta = rep(.1,length(data$training_data$response)))
   
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_po_spat.stan', sep = '/')
@@ -104,7 +104,7 @@ Inference_restr_spat_po <- function(wd, data, n_samples, burn_in) {
   
   #set initial values
   inits_chain1 <- list(lengthscale = .1, sigma = .1, beta = rep(-1,9),
-                       eta = rep(.1,length(training_data$response)))
+                       eta = rep(.1,length(data$training_data$response)))
   
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_po_restr_spat.stan', sep = '/')
@@ -169,7 +169,7 @@ Inference_spat_comb <- function(wd, data, n_samples, burn_in) {
   
   #set initial values
   inits_chain1 <- list(lengthscale = .1, sigma = .1, alpha_bias= -1,
-                       beta = rep(-1,9), eta = rep(.1,length(training_data$response)))
+                       beta = rep(-1,9), eta = rep(.1,length(data$training_data$response)))
   
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_comb_spat.stan', sep = '/')
@@ -201,7 +201,7 @@ Inference_restr_spat_comb <- function(wd, data, n_samples, burn_in) {
   
   #set initial values
   inits_chain1 <- list(lengthscale = .1, sigma = .1, alpha_bias= -1,
-                       beta = rep(-1,9), eta = rep(.1,length(training_data$response)))
+                       beta = rep(-1,9), eta = rep(.1,length(data$training_data$response)))
   
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_comb_restr_spat.stan', sep = '/')
