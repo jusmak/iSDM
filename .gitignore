@@ -1,11 +1,13 @@
 README_local.txt
 job_script_SDM.txt
 .Rhistory
+Call_Rmdwn.R
 Combine_offset_information.R
+show_offsets_sum.R
 species_list_v1.txt
 species_list_v2.txt
 test_ind.R
+test_restrictions.R
+SDM_v0_scripts/
 SDM_v1_scripts/
 Rmarkdown_scripts/
-Get_offsets_full_pred.R
-show_offsets_sum.R
