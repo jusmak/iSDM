@@ -51,10 +51,10 @@ Get_species_pa_data <- function(wd, env_data, training_data, species) {
   offset_expert <- raster::extract(temp_raster, coord_survey_sites)
   offset_expert[is.na(offset_expert)] <- min(offset_expert, na.rm = TRUE)
   #scale offsets according to the presence-only points
-  pop_i <- sum(training_data$offset_expert*weights)
+  pop_i <- sum(training_data$offset_expert*training_data$weights)
   offset_expert <- offset_expert/pop_i
   #center the offset to zero
-  offset_expert <- offset_expert*sum(weights)
+  offset_expert <- offset_expert*sum(training_data$weights)
   
   #elevation
   #define values in raster
@@ -63,10 +63,10 @@ Get_species_pa_data <- function(wd, env_data, training_data, species) {
   offset_elevation <- raster::extract(temp_raster, coord_survey_sites)
   offset_elevation[is.na(offset_elevation)] <- min(offset_elevation, na.rm = TRUE)
   #scale offsets according to the presence-only points
-  pop_i <- sum(training_data$offset_elevation*weights)
+  pop_i <- sum(training_data$offset_elevation*training_data$weights)
   offset_elevation <- offset_elevation/pop_i
   #center the offset to zero
-  offset_elevation <- offset_elevation*sum(weights)
+  offset_elevation <- offset_elevation*sum(training_data$weights)
   
   
   survey_data <- list(coord_pred, cov_pred, resp, offset_expert, offset_elevation)
