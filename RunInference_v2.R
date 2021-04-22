@@ -41,7 +41,7 @@ RunInference_v2 <- function(wd, species, data, thinning, thinning_PA, weights_ar
     fit_hb <- Inference_restr_spat_comb(wd, data, n_samples, burn_in)
     model_fits[[7]] <- fit_hb
     
-    names(model_fits) <- c('non_spat', 'spat', 'restr_spat')
+    names(model_fits) <- c('non_spat_po', 'non_spat_pa', 'spat_po', 'restr_spat_po', 'non_spat_comb', 'spat_comb', 'restr_spat_comb')
     
     save(model_fits, file = paste(wd, "/Model_fits_v2/", species, '_fits_', thin_mark, thin_PA_mark, "_quad_n_",
                                   target_n_obs, "_", weights_mark, '.RData', sep = ''))

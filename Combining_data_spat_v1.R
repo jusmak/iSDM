@@ -186,12 +186,12 @@ for (t in 1:length(thinning_PA_opt)) {
       
       #fit models
       source(paste(.wd, "R_code/RunInference_v2.R", sep = '/'))
-      model_fits <- RunInference_v2(.wd, .species, data, thinning, thinning_PA, weights_area, target_n_obs, n_samples, burn_in)
+      model_fits <- RunInference_v2(.wd, .species, data, thinning, thinning_PA, weights_area, target_n_obs, n_samples_1, burn_in_1)
       
       #compute predictive accuracy of the models
       #source(paste(.wd, "R_code/Predictive_tests_test_3.R", sep = '/'))
       #pred_metric <- Predictive_tests(.wd, model_fits, .species, data, thinning, thinning_PA,
-      #                                weights_area, target_n_obs, presence_flag, n_samples, burn_in)
+      #                                weights_area, target_n_obs, presence_flag, n_samples_2, burn_in_2)
     }
   }
 }
