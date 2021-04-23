@@ -16,7 +16,7 @@ Inference_non_spat_po <- function(wd, data, n_samples, burn_in) {
                  "linear_sigma" = linear_sigma)
   
   #set initial values
-  inits_chain1 <- list(beta = rep(-1,9))
+  inits_chain1 <- list(list(beta = rep(-1,9)))
   
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_po_non_spat.stan', sep = '/')
@@ -44,7 +44,7 @@ Inference_non_spat_pa <- function(wd, data, n_samples, burn_in) {
                  "x_inv" = x_inv_temp, "linear_sigma" = linear_sigma)
   
   #set initial values
-  inits_chain1 <- list(beta = rep(-1,9))
+  inits_chain1 <- list(list(beta = rep(-1,9)))
   
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_pa_non_spat.stan', sep = '/')
@@ -73,8 +73,8 @@ Inference_spat_po <- function(wd, data, n_samples, burn_in) {
                  "linear_sigma" = linear_sigma)
   
   #set initial values
-  inits_chain1 <- list(lengthscale = .1, sigma = .1, beta = rep(-1,9),
-                       eta = rep(.1,length(data$training_data$response)))
+  inits_chain1 <- list(list(lengthscale = .1, sigma = .1, beta = rep(-1,9),
+                       eta = rep(.1,length(data$training_data$response))))
   
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_po_spat.stan', sep = '/')
@@ -103,8 +103,8 @@ Inference_restr_spat_po <- function(wd, data, n_samples, burn_in) {
                  "linear_sigma" = linear_sigma)
   
   #set initial values
-  inits_chain1 <- list(lengthscale = .1, sigma = .1, beta = rep(-1,9),
-                       eta = rep(.1,length(data$training_data$response)))
+  inits_chain1 <- list(list(lengthscale = .1, sigma = .1, beta = rep(-1,9),
+                       eta = rep(.1,length(data$training_data$response))))
   
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_po_restr_spat.stan', sep = '/')
@@ -136,7 +136,7 @@ Inference_non_spat_comb <- function(wd, data, n_samples, burn_in) {
                  "linear_sigma" = linear_sigma)
   
   #set initial values
-  inits_chain1 <- list(alpha_bias= -1, beta = rep(-1,9))
+  inits_chain1 <- list(list(alpha_bias= -1, beta = rep(-1,9)))
   
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_comb_non_spat.stan', sep = '/')
@@ -168,8 +168,8 @@ Inference_spat_comb <- function(wd, data, n_samples, burn_in) {
                  "weights_PO" = data$training_data$weights, "linear_sigma" = linear_sigma)
   
   #set initial values
-  inits_chain1 <- list(lengthscale = .1, sigma = .1, alpha_bias= -1,
-                       beta = rep(-1,9), eta = rep(.1,length(data$training_data$response)))
+  inits_chain1 <- list(list(lengthscale = .1, sigma = .1, alpha_bias= -1,
+                       beta = rep(-1,9), eta = rep(.1,length(data$training_data$response))))
   
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_comb_spat.stan', sep = '/')
@@ -200,8 +200,8 @@ Inference_restr_spat_comb <- function(wd, data, n_samples, burn_in) {
                  "weights_PO" = data$training_data$weights, "linear_sigma" = linear_sigma)
   
   #set initial values
-  inits_chain1 <- list(lengthscale = .1, sigma = .1, alpha_bias= -1,
-                       beta = rep(-1,9), eta = rep(.1,length(data$training_data$response)))
+  inits_chain1 <- list(list(lengthscale = .1, sigma = .1, alpha_bias= -1,
+                       beta = rep(-1,9), eta = rep(.1,length(data$training_data$response))))
   
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_comb_restr_spat.stan', sep = '/')
