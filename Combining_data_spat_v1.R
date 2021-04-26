@@ -85,10 +85,10 @@ target_n_obs = 1000
 #in hierarchical Bayesian inference:
 # full data: 5000 samples with 2000 burn-in
 # cross-validation folds: 1200 samples with 400 burn-in
-n_samples_1 = 5000
+n_samples_1 = 3000
 burn_in_1 = 2000
 n_samples_2 = 1500
-burn_in_2 = 500
+burn_in_2 = 1000
 
 #whether weights are assigned according to the area related to a quadrature point
 weights_area_opt = TRUE
