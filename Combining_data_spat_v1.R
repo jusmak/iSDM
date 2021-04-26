@@ -80,7 +80,7 @@ thinning = FALSE
 thinning_PA_opt = FALSE
 
 #set the number of quadrature points in the coarse scale grid
-target_n_obs = 10000
+target_n_obs = 1000
 
 #in hierarchical Bayesian inference:
 # full data: 5000 samples with 2000 burn-in

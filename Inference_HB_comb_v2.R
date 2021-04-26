@@ -8,8 +8,7 @@ Inference_non_spat_po <- function(wd, data, n_samples, burn_in) {
   
   # add a constant parameter in covariates
   x_temp <- cbind(rep(1,length(data$training_data$response)),data$training_data$covariates)
-  x_inv_temp <- cbind(rep(1,length(data$inventory_data$response)),data$inventory_data$covariates)
-  
+
   f_data <- list("N" = length(data$training_data$response),
                  "y" = data$training_data$response/data$training_data$weights,
                  "x" = x_temp, "weights_PO" = data$training_data$weights,
@@ -36,7 +35,6 @@ Inference_non_spat_pa <- function(wd, data, n_samples, burn_in) {
   linear_sigma = 10
   
   # add a constant parameter in covariates
-  x_temp <- cbind(rep(1,length(data$training_data$response)),data$training_data$covariates)
   x_inv_temp <- cbind(rep(1,length(data$inventory_data$response)),data$inventory_data$covariates)
   
   f_data <- list("N_inv" = length(data$inventory_data$response),

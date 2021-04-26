@@ -14,20 +14,24 @@ parameters {
   vector[N] eta;
 }
 
-transformed parameters {
+model {
+  
   // spatial random effect
   vector[N] f;
-  matrix[N,N] L_cov;
-  matrix[N, N] cov = cov_exp_quad(coord, sigma, lengthscale) + diag_matrix(rep_vector(1e-6, N));
-  L_cov = cholesky_decompose(cov);
-  f = L_cov * eta;
-}
-
-model {
+  {
+    matrix[N,N] L_cov;
+    matrix[N, N] cov = cov_exp_quad(coord, sigma, lengthscale);
+    
+    // diagonal elements
+    for (n in 1:N)
+      cov[n, n] = cov[n, n] + 1e-6;
+    L_cov = cholesky_decompose(cov);
+    f = L_cov * eta;
+  }
   
   // prior models
   to_vector(beta) ~ normal(0,sqrt(linear_sigma));
-  lengthscale ~ normal(0,2);
+  lengthscale ~ inv_gamma(4,250);
   sigma ~ normal(0,2);
   eta ~ normal(0,1);
   
