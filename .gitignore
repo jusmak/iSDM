@@ -3,6 +3,11 @@ job_script_SDM.txt
 .Rhistory
 Call_Rmdwn.R
 Combine_offset_information.R
+Inference_HB_comb_v2_car.R
+Inference_HB_comb_v2_inla.R
+PPP_po_spat_car.stan
+RunInference_v2_car.R
+RunInference_v2_inla.R
 show_offsets_sum.R
 species_list_v1.txt
 species_list_v2.txt
