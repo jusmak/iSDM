@@ -17,10 +17,16 @@ Get_species_pa_data <- function(wd, env_data, training_data, species) {
   coord_survey_sites <- coord_survey_sites[!is.na(ind_site),]
   
   #Get covariate values in the survey sites
-  cov_pred <- as.data.frame(raster::extract(raster_cov_temp,coord_survey_sites))
+  cov_temp <- as.data.frame(raster::extract(raster_cov_temp,coord_survey_sites))
+  
+  #Get second order effects
+  train_covariates <- cbind(cov_temp, cov_temp^2)
   
   #Standardize covariate values
-  cov_pred <- mapply(function(x,y,z) (x-y)/z, cov_pred, training_data$cov_mean, training_data$cov_sd)
+  train_covariates_st <- mapply(function(x,y,z) (x-y)/z, train_covariates, training_data$cov_mean, training_data$cov_sd)
+  
+  #Define column names
+  colnames(train_covariates_st) <- c(colnames(env_data$covariates), 'cov1_sqrd', 'cov2_sqrd', 'cov3_sqrd', 'cov4_sqrd')
   
   #Define locations where species is present
   survey_species <- read.csv(paste(wd, '/Data/PA_observations/Juan_parra_checklists/SpeciesxSite8Feb2011.csv', sep = ''))
@@ -31,12 +37,14 @@ Get_species_pa_data <- function(wd, env_data, training_data, species) {
   survey_jp <- left_join(survey_sites[!is.na(ind_site),], pres_sp)
   
   #define a response variable
-  resp <- rep(0, nrow(cov_pred))
+  resp <- rep(0, nrow(train_covariates_st))
   resp[!is.na(survey_jp$Spname)] <- 1
   
   #transform coordinates
   coord_pred <- cbind(coord_survey_sites[,1]-training_data$min_coordinates[1],
                       coord_survey_sites[,2]-training_data$min_coordinates[2])/1000
+  
+  colnames(coord_pred) <- c('X', 'Y')
 
   ##EXPERT RANGE MAP and ELEVATION##
   #get exact values from the raster
@@ -69,7 +77,7 @@ Get_species_pa_data <- function(wd, env_data, training_data, species) {
   offset_elevation <- offset_elevation*sum(training_data$weights)
   
   
-  survey_data <- list(coord_pred, cov_pred, resp, offset_expert, offset_elevation)
+  survey_data <- list(coord_pred, train_covariates_st, resp, offset_expert, offset_elevation)
   names(survey_data) <- c('coordinates', 'covariates', 'response', 'offset_expert', 'offset_elevation')
   
   return(survey_data)

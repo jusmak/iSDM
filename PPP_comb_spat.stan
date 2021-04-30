@@ -24,8 +24,13 @@ model {
   vector[N] f;
   {
     matrix[N,N] L_cov;
-    matrix[N, N] cov = cov_exp_quad(coord, sigma, lengthscale) + diag_matrix(rep_vector(1e-6, N));
-    L_cov = cholesky_decompose(cov);
+    matrix[N, N] N_cov = cov_exp_quad(coord, sigma, lengthscale);
+    // diagonal elements
+    for (n in 1:N) {
+      N_cov[n, n] = N_cov[n, n] + 1e-6;
+    }
+    
+    L_cov = cholesky_decompose(N_cov);
     f = L_cov * eta;
   }
   
@@ -34,7 +39,7 @@ model {
   alpha_bias ~ normal(0,sqrt(10));
   lengthscale ~ inv_gamma(4,250);
   sigma ~ normal(0,2);
-  eta ~ normal(0,1);
+  to_vector(eta) ~ normal(0,1);
   
   // observation model
   for(i in 1:N){

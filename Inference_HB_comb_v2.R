@@ -21,8 +21,8 @@ Inference_non_spat_po <- function(wd, data, n_samples, burn_in) {
   m_hb_1 <- paste(wd, 'R_code/PPP_po_non_spat.stan', sep = '/')
   
   fit_hb <- stan(file=m_hb_1, data=f_data, iter=n_samples, warmup=burn_in,
-                 init = inits_chain1, chains=1, seed=2, refresh=1000, algorithm="NUTS",
-                 control=list(adapt_delta=.95, max_treedepth = 20))
+                 init = inits_chain1, chains=1, seed=2, refresh=10, algorithm="NUTS",
+                 control=list(adapt_delta=.95, max_treedepth = 15))
   return(fit_hb)
 }
 
@@ -48,8 +48,8 @@ Inference_non_spat_pa <- function(wd, data, n_samples, burn_in) {
   m_hb_1 <- paste(wd, 'R_code/PPP_pa_non_spat.stan', sep = '/')
   
   fit_hb <- stan(file=m_hb_1, data=f_data, iter=n_samples, warmup=burn_in,
-                 init = inits_chain1, chains=1, seed=2, refresh=1000, algorithm="NUTS",
-                 control=list(adapt_delta=.95, max_treedepth = 20))
+                 init = inits_chain1, chains=1, seed=2, refresh=10, algorithm="NUTS",
+                 control=list(adapt_delta=.95, max_treedepth = 15))
   return(fit_hb)
 }
 
@@ -78,8 +78,8 @@ Inference_spat_po <- function(wd, data, n_samples, burn_in) {
   m_hb_1 <- paste(wd, 'R_code/PPP_po_spat.stan', sep = '/')
   
   fit_hb <- stan(file=m_hb_1, data=f_data, iter=n_samples, warmup=burn_in,
-                 init = inits_chain1, chains=1, seed=2, refresh=1000, algorithm="NUTS",
-                 control=list(adapt_delta=.95, max_treedepth = 20))
+                 init = inits_chain1, chains=1, seed=2, refresh=10, algorithm="NUTS",
+                 control=list(adapt_delta=.95, max_treedepth = 15))
   return(fit_hb)
 }
 
@@ -108,8 +108,8 @@ Inference_restr_spat_po <- function(wd, data, n_samples, burn_in) {
   m_hb_1 <- paste(wd, 'R_code/PPP_po_restr_spat.stan', sep = '/')
   
   fit_hb <- stan(file=m_hb_1, data=f_data, iter=n_samples, warmup=burn_in,
-                 init = inits_chain1, chains=1, seed=2, refresh=1000, algorithm="NUTS",
-                 control=list(adapt_delta=.95, max_treedepth = 20))
+                 init = inits_chain1, chains=1, seed=2, refresh=10, algorithm="NUTS",
+                 control=list(adapt_delta=.95, max_treedepth = 15))
   return(fit_hb)
 }
 
@@ -140,8 +140,8 @@ Inference_non_spat_comb <- function(wd, data, n_samples, burn_in) {
   m_hb_1 <- paste(wd, 'R_code/PPP_comb_non_spat.stan', sep = '/')
   
   fit_hb <- stan(file=m_hb_1, data=f_data, iter=n_samples, warmup=burn_in,
-                 init = inits_chain1, chains=1, seed=2, refresh=1000, algorithm="NUTS",
-                 control=list(adapt_delta=.95, max_treedepth = 20))
+                 init = inits_chain1, chains=1, seed=2, refresh=10, algorithm="NUTS",
+                 control=list(adapt_delta=.95, max_treedepth = 15))
   return(fit_hb)
 }
 
@@ -172,8 +172,8 @@ Inference_spat_comb <- function(wd, data, n_samples, burn_in) {
   #setup the model
   m_hb_1 <- paste(wd, 'R_code/PPP_comb_spat.stan', sep = '/')
   fit_hb <- stan(file=m_hb_1, data=f_data, iter=n_samples, warmup=burn_in,
-                 init = inits_chain1, chains=1, seed=2, refresh=1000, algorithm="NUTS",
-                 control=list(adapt_delta=.95, max_treedepth = 20))
+                 init = inits_chain1, chains=1, seed=2, refresh=10, algorithm="NUTS",
+                 control=list(adapt_delta=.95, max_treedepth = 15))
   return(fit_hb)
 }
 
@@ -205,8 +205,8 @@ Inference_restr_spat_comb <- function(wd, data, n_samples, burn_in) {
   m_hb_1 <- paste(wd, 'R_code/PPP_comb_restr_spat.stan', sep = '/')
   
   fit_hb <- stan(file=m_hb_1, data=f_data, iter=n_samples, warmup=burn_in,
-                 init = inits_chain1, chains=1, seed=2, refresh=1000, algorithm="NUTS",
-                 control=list(adapt_delta=.95, max_treedepth = 20))
+                 init = inits_chain1, chains=1, seed=2, refresh=10, algorithm="NUTS",
+                 control=list(adapt_delta=.95, max_treedepth = 15))
   return(fit_hb)
 }
 

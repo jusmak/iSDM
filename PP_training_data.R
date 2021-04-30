@@ -78,6 +78,7 @@ PP_training_data <- function(wd, species, env_data, species_po_data, scale_out, 
   
   # add second order effects in the training covariates
   train_covariates <- cbind(train_covariates,train_covariates^2)
+  colnames(train_covariates) <- c(colnames(env_data$covariates), 'cov1_sqrd', 'cov2_sqrd', 'cov3_sqrd', 'cov4_sqrd')
   
   #standardize the covariates
   cov_mean <- apply(train_covariates,2,mean)

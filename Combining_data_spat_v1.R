@@ -23,6 +23,8 @@ suppressPackageStartupMessages({
   library(pROC, lib.loc=lib_path)
   library(flexclust, lib.loc=lib_path)
   library(irr, lib.loc=lib_path)
+  library(spdep, lib.loc=lib_path)
+  library(INLA)
 })
 
 
@@ -107,6 +109,7 @@ for (t in 1:length(thinning_PA_opt)) {
       source(paste(.wd, "R_code/Get_data.R", sep = '/'))
       data <- Get_data(.wd, .species, thinning, target_n_obs, weights_area)
 
+      
       if (thinning_PA) {
         #thin species PA data
         #thinning and cleaning function
