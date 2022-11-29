@@ -80,15 +80,14 @@ col.brk=data.frame(cols=c(grey(seq(.8,.2,length=24)),colorRampPalette(c('steelbl
 #make sure the top color is red
 col.brk$cols[(nrow(col.brk)-1)]='#8B0000'
 
-r = raster('Study_area/Study_area_laea.tif')
+env_temp = raster('Study_area/Study_area_laea.tif')
 #aggregate to 25x25km resolution
-r = aggregate(r, fact = 25)
 data('wrld_simpl')
-wrld_simpl = spTransform(wrld_simpl, crs(r))
+wrld_simpl = spTransform(wrld_simpl, crs(env_temp))
 
 #load the range map based validation
-load(file = 'Model_fits_v1/Range_map_accuracy_50km.RData')
-load(file = 'Model_fits_v1/Dens_range_map.RData')
+load(file = 'Model_fits_v1/Summaries_cv_sp/Range_map_accuracy_50km.RData')
+load(file = 'Model_fits_v1/Summaries_cv_sp/Dens_range_map.RData')
 
 
 #Choose two species
@@ -119,7 +118,6 @@ for (i in c(7,10)) {
 
   #load expert range map
   expert_temp = readOGR(paste0('Data/Range_shp/', .species, '.shp'))
-  env_temp = raster(paste0('Data/Study_area/Study_area_laea.tif'))
   env_temp[is.na(env_temp[])] = 0 
   
   #transform the projection of the range map

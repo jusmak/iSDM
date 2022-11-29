@@ -1,0 +1,308 @@
+---
+title: 'Integrated species distribution models to account for sampling biases and improve range wide occurrence predictions: an example'
+author: "Jussi Mäkinen, Cory Merow & Walter Jetz"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+To support our manuscript, we wrote an example analysis for one of the study species, sword-billed hummingbird (Ensifera ensifera). Here we introduce the data sets of the species, and fit models PO, PA, PO+PA, PO+PA+samp., and PO+PA+restr. (see Table 1 in the manuscript for the definition of the models).
+
+```{r packages + species/data setup}
+suppressPackageStartupMessages({
+  library(raster)
+  library(ggplot2)
+  library(pracma)
+  library(caret)
+  library(pROC)
+  library(flexclust)
+  library(irr)
+  library(spdep)
+  library(INLA)
+  library(gridExtra)
+  library(gtable)
+  library(RColorBrewer)
+  library(wesanderson)
+  library(tidyverse)
+  library(rgdal)
+  library(R.utils)
+  library(maptools)
+})
+
+.wd = getwd()
+
+#---- Set parameters for model runs ----#
+#model version
+model_v = 1
+
+#read in species list
+species_list = read.csv('R/Species_list_cross_validation.csv', header = F)[[1]]
+
+#option for spatially thin PO records
+thinning = FALSE
+thinning_PA = FALSE
+
+#set the number of quadrature points in the coarse scale grid
+target_n_obs = 20000
+
+#size of predictive marginal distributions
+n_samples = 500
+
+#get offset values
+get_offsets = FALSE
+
+#whether weights are assigned according to the area related to a quadrature point
+weights_area = TRUE
+
+#create indices
+thin_mark = ifelse(thinning, 'thin', 'not_thin')
+thin_PA_mark =  ifelse(thinning_PA, '_thin_PA', '_not_thin_PA')
+weights_mark = ifelse(weights_area, 'wa', 'not_wa')
+
+#get sword-billed hummingbird
+.species = species_list[10]
+model_labels = c('PO', 'PA', 'Joint', 'PO', 'PA', 'PO+PA', 'PO+PA+samp.',
+                  'PO + restr.', 'PA + restr.', 'PO+PA+restr.')
+
+#set the color scale
+col.brk=data.frame(cols=c(grey(seq(.8,.2,length=24)),colorRampPalette(c('steelblue4', 'steelblue1','gold','gold3', 'red1', 'red4'))(50)))
+#make sure the top color is red
+col.brk$cols[(nrow(col.brk)-1)]='#8B0000'
+
+```
+
+## Data
+
+The presence-only and presence-absence data, quadrature points and weights associated with the presence-only points and the environmental covariates in the across the data points are already stored in RData files. They are called with the same functions, which can be used for creating the data lists. In Set_data_for_inference.R, we also create the mesh of triangulars (for INLA) and set the cross-validation folds.
+
+```{r call data}
+## Load data and model fits
+source('R/Get_data.R')
+data = Get_data(.wd, .species, thinning, target_n_obs, weights_area, get_offsets)
+# Load data set specific to INLA run
+source('R/Set_data_for_inference.R')
+data_inla = Set_data_spde(.wd, .species, thinning, target_n_obs, weights_area, data)
+```
+
+Here we plot the data.
+
+```{r data distribution, message=FALSE, echo = FALSE, fig.cap = 'Spatial distribution of presence-only and presence-absence points and the constrained refined Delaunay triangulation (=mesh). In the plots for data points, species range from an expert range map is marked with grey. In presence-absende plot, black dots are for species presences and gray dots are for species absences.'}
+
+#study area raster
+env_temp = raster('Study_area/Study_area_laea.tif')
+env_temp[is.na(env_temp[])] = 0
+
+#background map
+data('wrld_simpl')
+wrld_simpl = spTransform(wrld_simpl, crs(env_temp))
+
+#observations
+obs_points_1 = data.frame(cbind(data_inla$po_coordinates[data_inla$po_response==1,1] * 1000 + data$env_data$min_coordinates[1],
+                                 data_inla$po_coordinates[data_inla$po_response==1,2] * 1000 + data$env_data$min_coordinates[2]))
+obs_points_2 = data.frame(cbind(data_inla$pa_coordinates[,1] * 1000 + data$env_data$min_coordinates[1],
+                                 data_inla$pa_coordinates[,2] * 1000 + data$env_data$min_coordinates[2]))
+
+#load expert range map
+expert_temp = readOGR(paste0('Data/Range_shp/', .species, '.shp'))
+
+#transform the projection of the range map
+expert_temp = spTransform(expert_temp, crs(env_temp))
+
+#set figure margins
+par(pty = 's', mai = c(.1,.1,.1,.1), mfrow = c(1,3))
+
+#Plot 1: Presence-only data
+#plotting area
+x1 = c(-86, -55)
+y1 = c(-20, 15)
+
+d = data.frame(lon=x1, lat=y1)
+coordinates(d) = c('lon', 'lat')
+proj4string(d) = CRS('+init=epsg:4326') # WGS 84
+CRS.new = crs(env_temp)
+d = spTransform(d, CRS.new)
+coord_temp = d@coords
+
+#crop the expert_temp and env_temp
+raster_temp = raster()
+extent(raster_temp) = c(coord_temp[c(1,2),1], coord_temp[c(1,2),2])
+env_temp_2 = crop(env_temp, raster_temp)
+
+#plot expert range map
+plot(env_temp_2, legend = F, axes = F, box = F, col = c('light blue', brewer.pal(n = 8, name = 'Set2')[7]), main = 'Presence-only data')
+plot(wrld_simpl, add = T)
+  
+#add training points
+points(obs_points_1, pch = 20, cex = 1)
+plot(expert_temp, col = '#11440050', add = T)
+
+#plotting area for the axes
+x2 = c(-85, -60)
+y2 = c(-20, 10)
+
+d = data.frame(lon=x2, lat=y2)
+coordinates(d) = c('lon', 'lat')
+proj4string(d) = CRS('+init=epsg:4326') # WGS 84
+CRS.new = crs(env_temp)
+d = spTransform(d, CRS.new)
+coord_temp_axis = d@coords
+
+axis(1, at=coord_temp_axis[,1], labels=c('85\u00B0 W', '60\u00B0 W'), pos = coord_temp[1,2]-1e5, cex.axis = 1.2,  tck = -.01)
+axis(2, at=coord_temp_axis[,2], labels=c(paste0(abs(y2[1]),'\u00B0 S'), paste0(y2[2], '\u00B0 N')), pos = coord_temp[1,1]-1e5, cex.axis = 1.2, tck = -.01)
+
+#add number of data points in the figure
+text(x=1.3e6, y=0e6, labels=paste0('n(PO)=', sum(data_inla$po_response)), cex=1.2)
+text(x=1.3e6, y=-.25e6, labels=paste0('prev.(PA)=', num2str(sum(data_inla$pa_response)/length(data_inla$pa_response),fmt=2)), cex=1.2)
+
+
+#Plot 2: presence-absence data
+x1 = c(-86, -55)
+y1 = c(-20, 15)
+
+d = data.frame(lon=x1, lat=y1)
+coordinates(d) = c('lon', 'lat')
+proj4string(d) = CRS('+init=epsg:4326') # WGS 84
+CRS.new = crs(env_temp)
+d = spTransform(d, CRS.new)
+coord_temp = d@coords
+
+#crop the expert_temp and env_temp
+raster_temp = raster()
+extent(raster_temp) = c(coord_temp[c(1,2),1], coord_temp[c(1,2),2])
+env_temp_2 = crop(env_temp, raster_temp)
+
+#plot expert range map
+plot(env_temp_2, legend = F, axes = F, box = F, col = c('light blue', brewer.pal(n = 8, name = 'Set2')[7]), main = 'Presence-absence data')
+plot(wrld_simpl, add = T)
+
+#add training points
+points(obs_points_2[data_inla$pa_response==0,], pch = 16, cex = .5, col =  brewer.pal(n = 8, name = 'Dark2')[8])
+points(obs_points_2[data_inla$pa_response==1,], pch = 16, cex = .5)
+
+plot(expert_temp, col = '#11440050', add = T)
+
+plot(data_inla$spde_mesh, main = 'Mesh')
+
+```
+
+## Model fitting
+
+Next we fit models and plot their predicted log-intensities. The script defining the models and stacking data for INLA can be looked from the RunInference source codes:
+
+```{r model fitting}
+#estimate/load model
+source('R/RunInference_inla_spat.R')
+output_spat = RunInference(.wd, .species, data_inla, thinning, thinning_PA, weights_area, target_n_obs, model_v)
+
+source('R/RunInference_inla_spat_samp.R')
+output_spat_samp = RunInference(.wd, .species, data_inla, thinning, thinning_PA, weights_area, target_n_obs, model_v)
+
+source('R/RunInference_inla_spat_rsr.R')
+output_spat_rsr = RunInference(.wd, .species, data_inla, thinning, thinning_PA, weights_area, target_n_obs, model_v)
+
+```
+
+Species range-wide predictions.
+
+```{r model predictions, message=FALSE, echo = FALSE, fig.cap = 'Predicted log-intensities across the study area. Proportion of the predicted intensities inside the expert range map are marked in the prediction plot.'}
+
+load(file = 'Model_fits_v1/Summaries_cv_sp/Dens_range_map.RData')
+
+#set figure margins
+par(pty = 's', mai = c(.1,.2,.1,.1), mfrow = c(2,3))
+
+#Plots 3-6: Log-intensity prediction
+x1 = c(-86, -55)
+y1 = c(-26, 15)
+
+d = data.frame(lon=x1, lat=y1)
+coordinates(d) = c('lon', 'lat')
+proj4string(d) = CRS('+init=epsg:4326') # WGS 84
+CRS.new = crs(env_temp)
+d = spTransform(d, CRS.new)
+coord_temp = d@coords
+
+#crop the expert_temp and env_temp
+raster_temp = raster()
+extent(raster_temp) = c(coord_temp[c(1,2),1], coord_temp[c(1,2),2])
+env_temp_2 = crop(env_temp, raster_temp)
+
+pred_matrix = data$env_data$covariates
+
+#take the second order effect
+pred_matrix = cbind(pred_matrix, pred_matrix^2)
+#scale the covariate values according to the training locations
+for (j in 1:ncol(pred_matrix)) {
+  pred_matrix[,j] = (pred_matrix[,j]-data_inla$cov_mean[j])/data_inla$cov_sd[j]
+}
+
+pred_matrix = cbind(rep(1,nrow(pred_matrix)),pred_matrix)
+pred_matrix_thres = cbind(rep(1,length(data_inla$pa_response)), data_inla$pa_covariates)
+
+background = stack(paste0('Data/Domains_new/', .species, '.tif'))
+background_temp = aggregate(background, fact = 25)
+
+for (k in c(4:7,10)) {
+  
+  if (k==4 | k == 5 | k == 6) {
+      output = output_spat
+    } else if (k == 7) {
+      output = output_spat_samp
+    } else if (k == 10) {
+      output = output_spat_rsr
+  }
+  
+  model_ind = c(1:3,1:3,1,1:3)[k]
+  
+  #load rasters for visualizing the predictions
+  background = background_temp
+  values(background)[-data$env_data$ind_na] = NA
+  
+  #pick a model
+  inla_temp = output$model_fits[[model_ind]]
+  
+  #predict across the study area
+  if (k == 1 | k == 2 | k == 4 | k == 5 | k == 8 | k == 9) {
+    beta_mean = inla_temp$summary.fixed$mean
+  } else {
+    beta_mean = inla_temp$summary.fixed$mean[-2]
+  }
+  
+  #covariate effect prediction
+  pred_mean = pred_matrix%*%as.matrix(beta_mean)
+  
+  #spatial random effect prediction
+  if (k > 3) {
+    proj = inla.mesh.projector(data_inla$spde_mesh, data$env_data$coordinates)
+    if (k == 5 | k == 9) {
+      sre_mean = inla.mesh.project(proj, output$model_fits[[model_ind]]$summary.random$pa_spde$mean)
+    } else {
+      sre_mean = inla.mesh.project(proj, output$model_fits[[model_ind]]$summary.random$po_spde$mean)
+    }      
+    pred_mean = pred_mean + sre_mean
+  }
+  
+  pred_mean[pred_mean<quantile(pred_mean, .1, na.rm = T)] = quantile(pred_mean,.1, na.rm = T)
+  
+  #presence-absence map with observations (test set)
+  values(background)[data$env_data$ind_na] = pred_mean
+  
+  par(pty = 's', mai = c(.2,.1,.1,.1))
+  plot(env_temp_2, legend = F, axes = F, box = F, col = c('light blue', brewer.pal(n = 8, name = 'Set2')[7]), main = model_labels[k])
+  plot(background, legend = F, axes = F, box = F, add = T, col = col.brk$cols)
+  plot(wrld_simpl, add = T)
+  plot(background, legend.only=TRUE, horizontal = F, col = col.brk$cols, legend.width=.5, legend.shrink=0.5,
+       smallplot=c(.18,.2, .15, .25), axis.args = list(cex.axis=.8))
+  
+  
+  #add proportion of species population inside the range map
+  text(x=1.1e6, y=-.1e6, labels=paste0('P.=', round(dens_range$range[10,k],2)), cex=1.2)
+}
+
+```
+
