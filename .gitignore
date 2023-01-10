@@ -1,5 +1,4 @@
 .Rhistory
-.git
 Compiled_data_v9/
 Data/
 !Data/Domains_new/Coeligena_lutetiae.tif
@@ -8,11 +7,6 @@ Data/
 !Data/Range_shp/Ensifera_ensifera.prj
 !Data/Range_shp/Ensifera_ensifera.shp
 !Data/Range_shp/Ensifera_ensifera.shx
-Model_fits_v1/INLA_spat_Coeligena_lutetiae_fits_not_thin_not_thin_PA_quad_n_20000_wa_inla.RData
-Model_fits_v1/INLA_spat_Ensifera_ensifera_fits_not_thin_not_thin_PA_quad_n_20000_wa_inla.RData
-Model_fits_v1/INLA_spat_samp_Coeligena_lutetiae_fits_not_thin_not_thin_PA_quad_n_20000_wa_inla.RData
-Model_fits_v1/INLA_spat_samp_Ensifera_ensifera_fits_not_thin_not_thin_PA_quad_n_20000_wa_inla.RData
-Model_fits_v1/INLA_spat_rsr_Ensifera_ensifera_fits_not_thin_not_thin_PA_quad_n_20000_wa_inla.RData
 Model_fits_v9/
 Notes/
 Manuscript/
