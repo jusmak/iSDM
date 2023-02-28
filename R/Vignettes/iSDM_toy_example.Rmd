@@ -1,6 +1,5 @@
 ---
 title: 'Integrated species distribution models to account for sampling biases and improve range wide occurrence predictions: an example'
-author: "Jussi Mäkinen, Cory Merow & Walter Jetz"
 date: "`r Sys.Date()`"
 output: html_document
 ---
