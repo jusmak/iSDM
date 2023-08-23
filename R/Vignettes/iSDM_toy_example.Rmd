@@ -106,11 +106,11 @@ obs_points_1 = data.frame(cbind(data_inla$po_coordinates[data_inla$po_response==
 obs_points_2 = data.frame(cbind(data_inla$pa_coordinates[,1] * 1000 + data$env_data$min_coordinates[1],
                                  data_inla$pa_coordinates[,2] * 1000 + data$env_data$min_coordinates[2]))
 
-#load expert range map
-expert_temp = readOGR(paste0('Data/Range_shp/', .species, '.shp'))
+#load expert range map - NOT active
+#expert_temp = readOGR(paste0('Data/Range_shp/', .species, '.shp'))
 
 #transform the projection of the range map
-expert_temp = spTransform(expert_temp, crs(env_temp))
+#expert_temp = spTransform(expert_temp, crs(env_temp))
 
 #set figure margins
 par(pty = 's', mai = c(.1,.1,.1,.1), mfrow = c(1,3))
@@ -127,7 +127,7 @@ CRS.new = crs(env_temp)
 d = spTransform(d, CRS.new)
 coord_temp = d@coords
 
-#crop the expert_temp and env_temp
+#crop the env_temp
 raster_temp = raster()
 extent(raster_temp) = c(coord_temp[c(1,2),1], coord_temp[c(1,2),2])
 env_temp_2 = crop(env_temp, raster_temp)
@@ -138,7 +138,8 @@ plot(wrld_simpl, add = T)
   
 #add training points
 points(obs_points_1, pch = 20, cex = 1)
-plot(expert_temp, col = '#11440050', add = T)
+# no expert range map
+#plot(expert_temp, col = '#11440050', add = T)
 
 #plotting area for the axes
 x2 = c(-85, -60)
@@ -170,7 +171,7 @@ CRS.new = crs(env_temp)
 d = spTransform(d, CRS.new)
 coord_temp = d@coords
 
-#crop the expert_temp and env_temp
+#crop the env_temp
 raster_temp = raster()
 extent(raster_temp) = c(coord_temp[c(1,2),1], coord_temp[c(1,2),2])
 env_temp_2 = crop(env_temp, raster_temp)
@@ -183,7 +184,8 @@ plot(wrld_simpl, add = T)
 points(obs_points_2[data_inla$pa_response==0,], pch = 16, cex = .5, col =  brewer.pal(n = 8, name = 'Dark2')[8])
 points(obs_points_2[data_inla$pa_response==1,], pch = 16, cex = .5)
 
-plot(expert_temp, col = '#11440050', add = T)
+# no expert range map
+#plot(expert_temp, col = '#11440050', add = T)
 
 plot(data_inla$spde_mesh, main = 'Mesh')
 
@@ -226,7 +228,7 @@ CRS.new = crs(env_temp)
 d = spTransform(d, CRS.new)
 coord_temp = d@coords
 
-#crop the expert_temp and env_temp
+#crop the env_temp
 raster_temp = raster()
 extent(raster_temp) = c(coord_temp[c(1,2),1], coord_temp[c(1,2),2])
 env_temp_2 = crop(env_temp, raster_temp)

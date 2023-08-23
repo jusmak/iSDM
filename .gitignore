@@ -1,12 +1,6 @@
 .Rhistory
 Compiled_data_v9/
-Data/
-!Data/Domains_new/Coeligena_lutetiae.tif
-!Data/Domains_new/Ensifera_ensifera.tif
-!Data/Range_shp/Ensifera_ensifera.dbf
-!Data/Range_shp/Ensifera_ensifera.prj
-!Data/Range_shp/Ensifera_ensifera.shp
-!Data/Range_shp/Ensifera_ensifera.shx
+Data/Range_shp/
 Model_fits_v9/
 Notes/
 Manuscript/
