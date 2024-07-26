@@ -1,6 +1,8 @@
 .Rhistory
 Compiled_data_v9/
-Data/Range_shp/
+Data_repository/
+Data/
+Data_temp/
 Model_fits_v9/
 Notes/
 Manuscript/
@@ -8,3 +10,5 @@ R/Current_scripts/
 R/Old_manuscript_scripts/
 R/Old_scripts/
 .Rproj.user
+
+

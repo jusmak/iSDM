@@ -98,3 +98,6 @@ pdf('Figures/Fig2.pdf', width = 168/in2mm, height = 160/in2mm)
 grid.arrange(g1[[1]], g1[[3]], g1[[6]], nrow = 3, heights = c(1,1,1.2))
 dev.off()
 
+png('Figures/Fig2.png', width = 168/in2mm, height = 160/in2mm, units = 'in', res = 600)
+grid.arrange(g1[[1]], g1[[3]], g1[[6]], nrow = 3, heights = c(1,1,1.2))
+dev.off()

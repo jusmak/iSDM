@@ -68,6 +68,12 @@ scenario_labels = c('Interpolation', 'Extrapolation', 'Extrapolation2')
 
 model_ind_all = c(4:7,10)
 
+#model labels for plotting
+model_label_temp = rep(model_labels[model_ind_all[2]],length(species_list))
+for (i in c(3:5)) {
+  model_label_temp = c(model_label_temp, rep(model_labels[model_ind_all[i]],length(species_list)))
+}
+model_order = model_labels[model_ind_all[c(2:5)]]
 
 #predictive accuracy
 #extrapolation - 2
@@ -101,7 +107,7 @@ for (s in 1:length(species_list)) {
 }
 
 #difference between models
-auc_temp = auc_temp = auc[,c(2:5)] - auc[,1]
+auc_temp = auc[,c(2:5)] - auc[,1]
 auc_int = data.frame(cbind(as.vector(auc_temp), model_label_temp))
 colnames(auc_int) = c('AUC', 'Model')
 auc_int$AUC = as.numeric(auc_int$AUC)
@@ -122,11 +128,27 @@ kappa_abs = data.frame(cbind(as.vector(kappa[,1]), rep(model_labels[model_ind_al
 colnames(kappa_abs) = c('Kappa', 'Model')
 kappa_abs$Kappa = as.numeric(kappa_abs$Kappa)
 
+#for how many species the model performs the best
+auc_top = apply(auc, 1, which.max)
+kappa_top = apply(kappa, 1, which.max)
+auc_summary = {}
+kappa_summary = {}
+for (i in 1:ncol(auc)) {
+  auc_summary[i] = sum(auc_top == i)
+  kappa_summary[i] = sum(kappa_top == i)
+}
+
+auc_annotation = data.frame(Model=c(1,2:length(auc_summary)-1), y=c(.5,rep(-.075,length(auc_summary)-1)), label=auc_summary)
+kappa_annotation = data.frame(Model=c(1,2:length(auc_summary)-1), y=c(-.05,rep(-.15,length(auc_summary)-1)), label=auc_summary)
+
+#save auc for later comparison
+auc_top_cv = auc_top
 
 g1 = list()
 g1[[1]] = ggplot(data=auc_int, aes(x=factor(Model, level = model_order), y=AUC, fill=factor(Model, level = model_order))) + 
   geom_hline(yintercept = 0, size = 1.5, linetype = 'dotted',  color = "grey") +
   geom_boxplot(alpha = .75) +
+  geom_text(data=auc_annotation[2:5,], aes(x=Model, y=y, label=label)) +
   scale_fill_manual(values = rep(wes_palette("Darjeeling2", n = 5)[1], 4)) +
   coord_cartesian(ylim = c(-.1,.25)) +
   scale_y_continuous(breaks = round(seq(-.3 , .3, .1),1)) +
@@ -140,6 +162,7 @@ g1[[1]] = ggplot(data=auc_int, aes(x=factor(Model, level = model_order), y=AUC, 
 g1[[2]] = ggplot(data=kappa_int, aes(x=factor(Model, level = model_order), y=Kappa, fill=factor(Model, level = model_order))) + 
   geom_hline(yintercept = 0, size = 1.5, linetype = 'dotted',  color = "grey") +
   geom_boxplot(alpha = .75) +
+  geom_text(data=kappa_annotation[2:5,], aes(x=Model, y=y, label=label)) +
   scale_fill_manual(values = rep(wes_palette("Darjeeling2", n = 5)[1], 4)) +
   coord_cartesian(ylim = c(-.2,.45)) +
   scale_y_continuous(breaks = round(seq(-.6, .6, .2),1)) +
@@ -153,6 +176,7 @@ g1[[2]] = ggplot(data=kappa_int, aes(x=factor(Model, level = model_order), y=Kap
 
 g1[[3]] = ggplot(data=auc_abs, aes(x=Model, y=AUC, fill=Model)) + 
   geom_boxplot(alpha = .75) +
+  geom_text(x=auc_annotation$Model[1], y=auc_annotation$y[1], label=auc_annotation$label[1]) +
   scale_fill_manual(values = wes_palette("Darjeeling2", n = 5)[1]) +
   coord_cartesian(ylim = mean(auc_abs$AUC) + c(-.3,.3)) +
   scale_y_continuous(breaks = seq(.4, 1, .1)) +
@@ -165,6 +189,7 @@ g1[[3]] = ggplot(data=auc_abs, aes(x=Model, y=AUC, fill=Model)) +
 
 g1[[4]] = ggplot(data=kappa_abs, aes(x=Model, y=Kappa, fill=Model)) + 
   geom_boxplot(alpha = .75) +
+  geom_text(x=kappa_annotation$Model[1], y=kappa_annotation$y[1], label=kappa_annotation$label[1]) +
   scale_fill_manual(values = wes_palette("Darjeeling2", n = 5)[1]) +
   coord_cartesian(ylim = mean(kappa_abs$Kappa) + c(-.3,.3)) +
   ylab('Kappa') +
@@ -207,11 +232,27 @@ kappa_abs = data.frame(cbind(as.vector(kappa[,1]), rep(model_labels[model_ind_al
 colnames(kappa_abs) = c('Kappa', 'Model')
 kappa_abs$Kappa = as.numeric(kappa_abs$Kappa)
 
+#for how many species the model performs the best
+auc_top = apply(auc, 1, which.max)
+kappa_top = apply(kappa, 1, which.max)
+auc_summary = {}
+kappa_summary = {}
+for (i in 1:ncol(auc)) {
+  auc_summary[i] = sum(auc_top == i)
+  kappa_summary[i] = sum(kappa_top == i)
+}
+
+auc_annotation = data.frame(Model=c(1,2:length(auc_summary)-1), y=c(.65,rep(-.25,length(auc_summary)-1)), label=auc_summary)
+kappa_annotation = data.frame(Model=c(1,2:length(auc_summary)-1), y=c(.3,rep(-.65,length(auc_summary)-1)), label=auc_summary)
+
+#save auc for later comparison
+auc_top_range = auc_top
 
 g2 = list()
 g2[[1]] = ggplot(data=auc_int, aes(x=factor(Model, level = model_order), y=AUC, fill=factor(Model, level = model_order))) + 
   geom_hline(yintercept = 0, size = 1.5, linetype = 'dotted',  color = "grey") +
   geom_boxplot(alpha = .75) +
+  geom_text(data=auc_annotation[2:5,], aes(x=Model, y=y, label=label)) +
   scale_fill_manual(values = rep(wes_palette("Darjeeling2", n = 5)[1], 4)) +
   coord_cartesian(ylim = c(-.3,.2)) +
   ylab(expression(paste(Delta, ' AUC'))) +
@@ -224,6 +265,7 @@ g2[[1]] = ggplot(data=auc_int, aes(x=factor(Model, level = model_order), y=AUC, 
 g2[[2]] = ggplot(data=kappa_int, aes(x=factor(Model, level = model_order), y=Kappa, fill=factor(Model, level = model_order))) + 
   geom_hline(yintercept = 0, size = 1.5, linetype = 'dotted',  color = "grey") +
   geom_boxplot(alpha = .75) +
+  geom_text(data=kappa_annotation[2:5,], aes(x=Model, y=y, label=label)) +
   scale_fill_manual(values = rep(wes_palette("Darjeeling2", n = 5)[1], 4)) +
   ylab(expression(paste(Delta, ' Kappa'))) +
   xlab('') +
@@ -234,6 +276,7 @@ g2[[2]] = ggplot(data=kappa_int, aes(x=factor(Model, level = model_order), y=Kap
 
 g2[[3]] = ggplot(data=auc_abs, aes(x=Model, y=AUC, fill=Model)) + 
   geom_boxplot(alpha = .75) +
+  geom_text(x=auc_annotation$Model[1], y=auc_annotation$y[1], label=auc_annotation$label[1]) +
   scale_fill_manual(values = wes_palette("Darjeeling2", n = 5)[1]) +
   coord_cartesian(ylim = mean(auc_abs$AUC) + c(-.3,.1)) +
   ylab('AUC') +
@@ -244,6 +287,7 @@ g2[[3]] = ggplot(data=auc_abs, aes(x=Model, y=AUC, fill=Model)) +
 
 g2[[4]] = ggplot(data=kappa_abs, aes(x=Model, y=Kappa, fill=Model)) + 
   geom_boxplot(alpha = .75) +
+  geom_text(x=kappa_annotation$Model[1], y=kappa_annotation$y[1], label=kappa_annotation$label[1]) +
   scale_fill_manual(values = wes_palette("Darjeeling2", n = 5)[1]) +
   ylab('Kappa') +
   xlab('') +
@@ -279,14 +323,24 @@ var_part_abs = data.frame(cbind(as.vector(var_ext[,1]), rep(model_labels[model_i
 colnames(var_part_abs) = c('Sd', 'Model')
 var_part_abs$Sd = as.numeric(var_part_abs$Sd)
 
+#for how many species the model performs the best
+var_top = apply(var_ext, 1, which.min)
+sd_summary = {}
+for (i in 1:ncol(var_ext)) {
+  sd_summary[i] = sum(var_top == i)
+}
+
+sd_annotation = data.frame(Model=c(1,2:length(sd_summary)-1), y=c(1.4,rep(-1.5,length(sd_summary)-1)), label=sd_summary)
+
 
 g4 = vector(mode='list', length=2)
 
 g4[[1]] = ggplot(data=var_part_rel, aes(x=factor(Model, level = model_order), y=Sd, fill=factor(Model, level = model_order))) + 
   geom_hline(yintercept = 0, size = 1.5, linetype = 'dotted',  color = "grey") +
   geom_boxplot(alpha = .75) +
+  geom_text(data=sd_annotation[2:5,], aes(x=Model, y=y, label=label)) +
   scale_fill_manual(values = rep(wes_palette("Darjeeling2", n = 5)[1], 4)) +
-  ylab(expression(paste(Delta, ' Standard deviation'))) +
+  ylab(expression(paste(Delta, ' Predictive standard deviation'))) +
   xlab('') +
   theme_light() +
   ggtitle('Uncertainty estimation') +
@@ -295,8 +349,9 @@ g4[[1]] = ggplot(data=var_part_rel, aes(x=factor(Model, level = model_order), y=
 
 g4[[2]] = ggplot(data=var_part_abs, aes(x=Model, y=Sd, fill=Model)) +
   geom_boxplot(alpha = .75) +
+  geom_text(x=sd_annotation$Model[1], y=sd_annotation$y[1], label=sd_annotation$label[1]) +
   scale_fill_manual(values = wes_palette("Darjeeling2", n = 5)[1]) +
-  ylab('Standard deviation') +
+  ylab('Predictive standard deviation') +
   xlab('') +
   theme_light() +
   theme(legend.position = "none", text = element_text(size = 8), plot.margin = unit(c(15, 5.5, 5.5, 5.5), "points"))
@@ -325,14 +380,23 @@ pop_abs = data.frame(cbind(as.vector(dens_range$range[,1]), rep(model_labels[mod
 colnames(pop_abs) = c('Pop', 'Model')
 pop_abs$Pop = as.numeric(pop_abs$Pop)
 
+pop_top = apply(dens_range$range, 1, which.max)
+pop_summary = {}
+for (i in 1:ncol(dens_range$range)) {
+  pop_summary[i] = sum(pop_top == i)
+}
+
+pop_annotation = data.frame(Model=c(1,2:length(pop_summary)-1), y=c(.125,rep(-.8,length(pop_summary)-1)), label=pop_summary)
+
 g3 = vector(mode='list', length=2)
 
 g3[[1]] = ggplot(data=pop_rel, aes(x=factor(Model, level = model_order), y=Pop, fill=factor(Model, level = model_order))) + 
   geom_hline(yintercept = 0, size = 1.5, linetype = 'dotted',  color = "grey") +
   geom_boxplot(alpha = .75) +
+  geom_text(data=pop_annotation[2:5,], aes(x=Model, y=y, label=label)) +
   scale_fill_manual(values = rep(wes_palette("Darjeeling2", n = 5)[1], 4)) +
   coord_cartesian(ylim = c(-1,.4)) +
-  ylab(expression(paste(Delta, ' Proportion'))) +
+  ylab(expression(paste(Delta, ' Proportion of the predicted population'))) +
   xlab('') +
   ggtitle('Expert range map-based validation') +
   theme_light() +
@@ -341,9 +405,10 @@ g3[[1]] = ggplot(data=pop_rel, aes(x=factor(Model, level = model_order), y=Pop, 
 
 g3[[2]] = ggplot(data=pop_abs, aes(x=Model, y=Pop, fill=Model)) +
   geom_boxplot(alpha = .75) +
+  geom_text(x=pop_annotation$Model[1], y=pop_annotation$y[1], label=pop_annotation$label[1]) +
   scale_fill_manual(values = wes_palette("Darjeeling2", n = 5)[1]) +
-  coord_cartesian(ylim = mean(pop_abs$Pop) + c(-.6,.6)) +
-  ylab('Proportion') +
+  coord_cartesian(ylim = mean(pop_abs$Pop) + c(-.6,.4)) +
+  ylab('Proportion of the predicted population') +
   xlab('') +
   theme_light() +
   theme(legend.position = "none", text = element_text(size = 8), plot.margin = unit(c(15, 5.5, 5.5, 5.5), "points"))
@@ -356,3 +421,8 @@ grid.arrange(g1[[3]], g1[[1]], grob(NULL), g1[[4]], g1[[2]],
              g3[[2]], g3[[1]], grob(NULL), g4[[2]], g4[[1]], nrow = 3, widths = c(1.5,3.5,.1,1.5,3.5))
 dev.off()
 
+png('Figures/Fig1.png', width = 168/in2mm, height = 160/in2mm, units = 'in', res = 600)
+grid.arrange(g1[[3]], g1[[1]], grob(NULL), g1[[4]], g1[[2]],
+             g2[[3]], g2[[1]], grob(NULL), g2[[4]], g2[[2]], 
+             g3[[2]], g3[[1]], grob(NULL), g4[[2]], g4[[1]], nrow = 3, widths = c(1.5,3.5,.1,1.5,3.5))
+dev.off()
